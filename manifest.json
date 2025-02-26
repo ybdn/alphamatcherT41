@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Assistance T41",
-  "version": "3.0",
+  "version": "2.0",
   "description": "Script pour assister les opérateurs FAED dans le contrôle des fiches de signalisation",
   
   "permissions": [
@@ -17,7 +17,7 @@
   ],
   
   "background": {
-    "service_worker": "background/backgroundScript.js"
+    "scripts": "background/backgroundScript.js"
   },
   
   "content_scripts": [
