@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "Assistance T41",
+  "version": "2.0",
+  "description": "Script pour assister les opérateurs FAED dans le contrôle des fiches de signalisation",
+  
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  
+  "host_permissions": [
+    "https://faed.ppsso.gendarmerie.fr/*",
+    "https://faed.sso.gendarmerie.fr/*"
+  ],
+
+  "background": {
+    "scripts": ["background/backgroundScript.js"],
+    "persistent": true
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "https://faed.ppsso.gendarmerie.fr/*",
+        "https://faed.sso.gendarmerie.fr/*"
+      ],
+      "js": ["content/contentScript.js", "content/alphaMatchers.js"]
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "assistance-t41@intranet"
+    }
+  }
+}
