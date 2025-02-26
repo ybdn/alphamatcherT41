@@ -69,7 +69,10 @@ body{
     background-color: var(--button-hover-light);
 }
 
-
+.icon-button {
+    border : none;
+	background : none;
+}
 
 /* 📷 Logo */
 .app-icon {
