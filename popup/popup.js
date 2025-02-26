@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           browser.scripting.executeScript({
             target: { tabId: tab.id },
-            files: ["content/alphaMatchers.js"]
+            files: ["../content/alphaMatchers.js"]
           }).then(() => {
             console.log("alphaMatchers.js injecté avec succès !");
           }).catch((error) => {
