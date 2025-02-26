@@ -72,7 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Injection d'alphaMatchers.js dans l'onglet:", tab.id);
         await browser.scripting.executeScript({
           target: { tabId: tab.id },
-          files: ["content/alphaMatchers.js"]
+          files: ["/content/alphaMatchers.js"]
         });
         console.log("✅ alphaMatchers.js injecté avec succès !");
 
