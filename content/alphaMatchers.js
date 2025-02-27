@@ -3,6 +3,7 @@
     // Variables globales encapsulées
     let isActive = false;
     let alphaStepIndex = 0; // Renommé pour éviter le conflit
+    let domFormat = null; // Variable pour stocker le format DOM détecté
 
     // Fonction pour journaliser les informations avec un format cohérent
     function logInfo(message, data = null) {
@@ -11,6 +12,56 @@
             console.log(`[${timestamp}] 🔷 AlphaMatchers: ${message}`, data);
         } else {
             console.log(`[${timestamp}] 🔷 AlphaMatchers: ${message}`);
+        }
+    }
+
+    // Fonction pour détecter le format DOM de la page actuelle
+    function detectDOMFormat() {
+        // Vérifier d'abord si les éléments incluent tabViewValidationFiche
+        const withTabView = document.querySelector("#formValidationCorrection\\:tabViewValidationFiche\\:nom");
+        const withoutTabView = document.querySelector("#formValidationCorrection\\:nom");
+        
+        if (withTabView) {
+            logInfo("Format DOM détecté: avec tabViewValidationFiche");
+            return "tabView";
+        } else if (withoutTabView) {
+            logInfo("Format DOM détecté: sans tabViewValidationFiche");
+            return "direct";
+        } else {
+            // Essayer d'autres sélecteurs pour détecter le format
+            const anyForm = document.querySelector("#formValidationCorrection");
+            if (anyForm) {
+                logInfo("Format DOM détecté: formulaire trouvé mais format inconnu");
+                return "unknown";
+            } else {
+                logInfo("Format DOM détecté: aucun formulaire trouvé");
+                return "notFound";
+            }
+        }
+    }
+
+    // Fonction pour obtenir le sélecteur approprié en fonction du format DOM
+    function getSelector(baseSelector, field) {
+        if (domFormat === "tabView") {
+            // Cas spéciaux pour certains champs
+            if (field === "serviceInitiateur") {
+                return "#formValidationCorrection\\:tabViewValidationFiche\\:ServiceSignalisationListeActive_input";
+            } else if (field === "una") {
+                return "#formValidationCorrection\\:tabViewValidationFiche\\:NumeroProcedure";
+            } else if (field === "serviceRattachement") {
+                return "#formValidationCorrection\\:tabViewValidationFiche\\:ServiceRattachement";
+            } else if (field === "ficheEtabliePar") {
+                return "#formValidationCorrection\\:tabViewValidationFiche\\:ficheEtabliePar";
+            } else if (field === "nom") {
+                return "#formValidationCorrection\\:tabViewValidationFiche\\:nom";
+            } else if (field === "prenom") {
+                return "#formValidationCorrection\\:tabViewValidationFiche\\:prenom";
+            }
+            // Format avec tabViewValidationFiche
+            return "#formValidationCorrection\\:tabViewValidationFiche\\:" + field;
+        } else {
+            // Format direct
+            return baseSelector;
         }
     }
 
@@ -157,24 +208,51 @@
         logInfo("⭐ DÉBUT DE LA VÉRIFICATION DES DONNÉES ALPHANUMÉRIQUES ⭐");
 
         try {
-            // Sélection sécurisée des champs
-            const getValue = (selector) => {
+            // Détection du format DOM si pas encore fait
+            if (!domFormat) {
+                domFormat = detectDOMFormat();
+            }
+
+            // Fonction pour obtenir la valeur d'un élément avec un sélecteur principal et une alternative
+            const getValue = (baseSelector, field) => {
+                const selector = getSelector(baseSelector, field);
                 const element = document.querySelector(selector);
-                const found = element ? "✅ trouvé" : "❌ non trouvé";
-                const value = element?.value?.trim() || "";
-                logInfo(`Élément ${selector}: ${found}, valeur: "${value}"`);
-                return value;
+                
+                if (element) {
+                    const value = element.value?.trim() || "";
+                    logInfo(`Élément ${selector}: ✅ trouvé, valeur: "${value}"`);
+                    return value;
+                }
+                
+                // Si le format n'est pas trouvé, essayer les deux formats
+                if (domFormat === "unknown" || domFormat === "notFound") {
+                    const altSelector = field === "serviceInitiateur" 
+                        ? "#formValidationCorrection\\:tabViewValidationFiche\\:ServiceSignalisationListeActive_input" 
+                        : "#formValidationCorrection\\:" + field;
+                    
+                    const altElement = document.querySelector(altSelector);
+                    if (altElement) {
+                        const value = altElement.value?.trim() || "";
+                        logInfo(`Élément ${altSelector}: ✅ trouvé, valeur: "${value}"`);
+                        return value;
+                    }
+                }
+                
+                logInfo(`Élément ${selector}: ❌ non trouvé, valeur: ""`);
+                return "";
             };
 
             logInfo("1️⃣ Extraction des valeurs des champs...");
-            const idpp = getValue("#formValidationCorrection\\:identifiantGaspard");
-            const typeSaisie = getValue("#formValidationCorrection\\:typeDeSignalisationValue");
-            const nom = getValue("#formValidationCorrection\\:nom");
-            const prenom = getValue("#formValidationCorrection\\:prenom");
-            const serviceInitiateur = getValue("#formValidationCorrection\\:serviceInitiateur");
-            const una = getValue("#formValidationCorrection\\:una");
-            const ficheEtabliePar = getValue("#formValidationCorrection\\:ficheEtabliePar");
-            const serviceRattachement = getValue("#formValidationCorrection\\:serviceRattachement");
+            
+            // Extraction des valeurs en utilisant la fonction robuste
+            const idpp = getValue("#formValidationCorrection\\:identifiantGaspard", "identifiantGaspard");
+            const typeSaisie = getValue("#formValidationCorrection\\:typeDeSignalisationValue", "typeDeSignalisationValue");
+            const nom = getValue("#formValidationCorrection\\:nom", "nom");
+            const prenom = getValue("#formValidationCorrection\\:prenom", "prenom");
+            const serviceInitiateur = getValue("#formValidationCorrection\\:serviceInitiateur", "serviceInitiateur");
+            const una = getValue("#formValidationCorrection\\:una", "una");
+            const ficheEtabliePar = getValue("#formValidationCorrection\\:ficheEtabliePar", "ficheEtabliePar");
+            const serviceRattachement = getValue("#formValidationCorrection\\:serviceRattachement", "serviceRattachement");
 
             logInfo("Résumé des valeurs extraites:", {
                 idpp, typeSaisie, nom, prenom, serviceInitiateur, una, ficheEtabliePar, serviceRattachement
@@ -309,22 +387,26 @@
         try {
             // Réinitialiser les styles précédents
             const allFields = [
-                "#formValidationCorrection\\:identifiantGaspard",
-                "#formValidationCorrection\\:typeDeSignalisationValue",
-                "#formValidationCorrection\\:serviceInitiateur",
-                "#formValidationCorrection\\:una",
-                "#formValidationCorrection\\:ficheEtabliePar",
-                "#formValidationCorrection\\:serviceRattachement"
+                "identifiantGaspard",
+                "typeDeSignalisationValue",
+                "serviceInitiateur",
+                "una",
+                "ficheEtabliePar",
+                "serviceRattachement",
+                "nom",
+                "prenom"
             ];
             
-            allFields.forEach(selector => {
+            allFields.forEach(field => {
+                const selector = getSelector(`#formValidationCorrection\\:${field}`, field);
                 const element = document.querySelector(selector);
+                
                 if (element) {
                     element.style.border = "";
                     element.style.backgroundColor = "";
                     
                     // Supprimer l'indicateur d'erreur existant s'il y en a un
-                    const errorIndicator = document.querySelector(`${selector}-error-indicator`);
+                    const errorIndicator = document.querySelector(`${selector.replace(/[\\:]/g, '')}-error-indicator`);
                     if (errorIndicator) {
                         errorIndicator.remove();
                     }
@@ -333,19 +415,19 @@
             
             // Appliquer les styles d'erreur
             if (validationResults.neotest === "❌ ÉCHEC" || validationResults.frankDesmis === "❌ ÉCHEC") {
-                highlightField("#formValidationCorrection\\:ficheEtabliePar");
+                highlightField("ficheEtabliePar");
             }
             
             if (validationResults.typeSaisie === "❌ ÉCHEC" || validationResults.serviceRattachementFormat === "❌ ÉCHEC") {
-                highlightField("#formValidationCorrection\\:serviceRattachement");
+                highlightField("serviceRattachement");
             }
             
             if (validationResults.serviceInitiateurFormat === "❌ ÉCHEC") {
-                highlightField("#formValidationCorrection\\:serviceInitiateur");
+                highlightField("serviceInitiateur");
             }
             
             if (validationResults.unaFormat === "❌ ÉCHEC") {
-                highlightField("#formValidationCorrection\\:una");
+                highlightField("una");
             }
             
             logInfo("Mise en évidence des champs terminée");
@@ -355,8 +437,10 @@
     }
 
     // Fonction pour mettre en évidence un champ spécifique
-    function highlightField(selector) {
+    function highlightField(field) {
+        const selector = getSelector(`#formValidationCorrection\\:${field}`, field);
         const element = document.querySelector(selector);
+        
         if (element) {
             // Sauvegarder les styles originaux
             const originalBorder = element.style.border;
@@ -385,6 +469,33 @@
             logInfo(`Champ mis en évidence: ${selector}`);
         } else {
             logInfo(`Champ introuvable pour mise en évidence: ${selector}`);
+            
+            // Essayer de trouver un élément alternatif si l'élément direct n'est pas trouvé
+            if (field === "serviceInitiateur") {
+                const altSelector = "#formValidationCorrection\\:tabViewValidationFiche\\:ServiceSignalisationListeActive_input";
+                const altElement = document.querySelector(altSelector);
+                if (altElement) {
+                    altElement.style.border = "2px solid #FF4136";
+                    altElement.style.backgroundColor = "#FFF5F5";
+                    logInfo(`Alternative utilisée pour mise en évidence: ${altSelector}`);
+                }
+            } else if (field === "una") {
+                const altSelector = "#formValidationCorrection\\:tabViewValidationFiche\\:NumeroProcedure";
+                const altElement = document.querySelector(altSelector);
+                if (altElement) {
+                    altElement.style.border = "2px solid #FF4136";
+                    altElement.style.backgroundColor = "#FFF5F5";
+                    logInfo(`Alternative utilisée pour mise en évidence: ${altSelector}`);
+                }
+            } else if (field === "serviceRattachement") {
+                const altSelector = "#formValidationCorrection\\:tabViewValidationFiche\\:ServiceRattachement";
+                const altElement = document.querySelector(altSelector);
+                if (altElement) {
+                    altElement.style.border = "2px solid #FF4136";
+                    altElement.style.backgroundColor = "#FFF5F5";
+                    logInfo(`Alternative utilisée pour mise en évidence: ${altSelector}`);
+                }
+            }
         }
     }
 
@@ -395,6 +506,10 @@
         
         logInfo("🚀 ACTIVATION DU SCRIPT ALPHAMATCHERS");
         logInfo("Script activé et prêt à exécuter les vérifications");
+        
+        // Détection du format DOM
+        domFormat = detectDOMFormat();
+        logInfo(`Format DOM détecté: ${domFormat}`);
         
         // Vérification immédiate des données
         logInfo("Lancement de la vérification des données...");
@@ -486,7 +601,8 @@
             highlightErrorFields,
             highlightField,
             activateScript,
-            deactivateScript
+            deactivateScript,
+            detectDOMFormat
         };
     } else if (typeof module !== 'undefined' && module.exports) {
         // Export pour les tests Node.js
@@ -496,7 +612,8 @@
             highlightErrorFields,
             highlightField,
             activateScript,
-            deactivateScript
+            deactivateScript,
+            detectDOMFormat
         };
     }
 })(); // Fin de l'IIFE
