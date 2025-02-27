@@ -40,6 +40,82 @@
         }
     }
 
+    // Fonction pour diagnostiquer le problème de détection des champs
+    function diagnoseDOMIssues() {
+        logInfo("🔍 DIAGNOSTIC DES PROBLÈMES DE DOM EN COURS...");
+        
+        // Vérifier si on peut trouver le type de saisie avec différentes méthodes
+        const typeSelectors = [
+            "#formValidationCorrection\\:typeDeSignalisationValue",
+            "#formValidationCorrection\\:tabViewValidationFiche\\:typeDeSignalisationValue",
+            "input[id*='typeDeSignalisation']"
+        ];
+        
+        logInfo("--- Recherche du type de saisie ---");
+        let typeFound = false;
+        typeSelectors.forEach(selector => {
+            const element = document.querySelector(selector);
+            if (element) {
+                typeFound = true;
+                logInfo(`Sélecteur ${selector}: ✅ trouvé, valeur: "${element.value}"`);
+            } else {
+                logInfo(`Sélecteur ${selector}: ❌ non trouvé`);
+            }
+        });
+        
+        if (!typeFound) {
+            // Recherche plus générique par attribut
+            const allInputs = document.querySelectorAll('input[type="text"]');
+            logInfo(`Nombre total d'inputs texte trouvés: ${allInputs.length}`);
+            
+            for (const input of allInputs) {
+                if (input.id.includes('type') || input.name.includes('type')) {
+                    logInfo(`Input potentiel trouvé pour le type: id=${input.id}, name=${input.name}, value="${input.value}"`);
+                }
+            }
+            
+            // Chercher par label
+            const typeLabels = document.querySelectorAll('label');
+            for (const label of typeLabels) {
+                if (label.textContent.includes('Type')) {
+                    logInfo(`Label "Type" trouvé: ${label.outerHTML}`);
+                    const labelFor = label.getAttribute('for');
+                    if (labelFor) {
+                        const associatedInput = document.getElementById(labelFor);
+                        if (associatedInput) {
+                            logInfo(`Input associé trouvé: id=${associatedInput.id}, value="${associatedInput.value}"`);
+                        }
+                    }
+                    
+                    // Trouver l'élément suivant le label (navigation DOM)
+                    const nextElement = label.nextElementSibling;
+                    if (nextElement) {
+                        logInfo(`Élément suivant le label: ${nextElement.tagName}, id=${nextElement.id}, value=${nextElement.value}`);
+                    }
+                }
+            }
+        }
+        
+        // Tester également la détection du service de rattachement
+        logInfo("--- Recherche du service de rattachement ---");
+        const serviceSelectors = [
+            "#formValidationCorrection\\:ServiceRattachement",
+            "#formValidationCorrection\\:tabViewValidationFiche\\:ServiceRattachement",
+            "input[id*='ServiceRattachement']"
+        ];
+        
+        serviceSelectors.forEach(selector => {
+            const element = document.querySelector(selector);
+            if (element) {
+                logInfo(`Sélecteur ${selector}: ✅ trouvé, valeur: "${element.value}"`);
+            } else {
+                logInfo(`Sélecteur ${selector}: ❌ non trouvé`);
+            }
+        });
+        
+        logInfo("🔍 FIN DU DIAGNOSTIC");
+    }
+
     // Fonction pour obtenir le sélecteur approprié en fonction du format DOM
     function getSelector(baseSelector, field) {
         if (domFormat === "tabView") {
@@ -59,6 +135,7 @@
             } else if (field === "identifiantGaspard" || field === "idpp") {
                 return "#formValidationCorrection\\:tabViewValidationFiche\\:identifiantGaspard";
             } else if (field === "typeSaisie" || field === "typeDeSignalisation") {
+                // Pour le type de saisie, on essaie d'abord le format tabView mais on a aussi un fallback
                 return "#formValidationCorrection\\:tabViewValidationFiche\\:typeDeSignalisationValue";
             }
             // Format avec tabViewValidationFiche
@@ -226,6 +303,11 @@
                 domFormat = detectDOMFormat();
             }
 
+            // Si le format DOM est inconnu, lancer le diagnostic
+            if (domFormat === "unknown" || domFormat === "notFound") {
+                diagnoseDOMIssues();
+            }
+
             // Fonction pour obtenir la valeur d'un élément avec un sélecteur principal et une alternative
             const getValue = (baseSelector, field) => {
                 const selector = getSelector(baseSelector, field);
@@ -235,6 +317,19 @@
                     const value = element.value?.trim() || "";
                     logInfo(`Élément ${selector}: ✅ trouvé, valeur: "${value}"`);
                     return value;
+                }
+                
+                // Si le champ est le type de saisie, essayer une recherche directe
+                if (field === "typeSaisie" || field === "typeDeSignalisation") {
+                    // Essayer le sélecteur direct sans tabViewValidationFiche
+                    const directSelector = "#formValidationCorrection\\:typeDeSignalisationValue";
+                    const directElement = document.querySelector(directSelector);
+                    
+                    if (directElement) {
+                        const value = directElement.value?.trim() || "";
+                        logInfo(`Élément trouvé via sélecteur direct ${directSelector}: ✅ trouvé, valeur: "${value}"`);
+                        return value;
+                    }
                 }
                 
                 // Si le format n'est pas trouvé, essayer les deux formats
@@ -248,6 +343,21 @@
                         const value = altElement.value?.trim() || "";
                         logInfo(`Élément ${altSelector}: ✅ trouvé, valeur: "${value}"`);
                         return value;
+                    }
+                }
+                
+                // Dernière tentative: chercher par texte de label pour le type de saisie
+                if (field === "typeSaisie" || field === "typeDeSignalisation") {
+                    const labels = document.querySelectorAll('label');
+                    for (const label of labels) {
+                        if (label.textContent.includes('Type')) {
+                            const nextElement = label.nextElementSibling;
+                            if (nextElement && nextElement.tagName === 'INPUT') {
+                                const value = nextElement.value?.trim() || "";
+                                logInfo(`Type de saisie trouvé via label: ✅ trouvé, valeur: "${value}"`);
+                                return value;
+                            }
+                        }
                     }
                 }
                 
@@ -315,10 +425,17 @@
 
             // 3️⃣ Vérification du Type / Type de saisie
             logInfo("3️⃣ Vérification du type de saisie...");
+            // Faire un log détaillé du type de saisie pour le debugging
+            logInfo(`Type de saisie récupéré: "${typeSaisie}" (longueur: ${typeSaisie.length})`);
+
+            // Normaliser le type de saisie (enlever espaces, mettre en majuscules)
+            const normalizedTypeSaisie = typeSaisie.trim().toUpperCase();
+            logInfo(`Type de saisie normalisé: "${normalizedTypeSaisie}"`);
+
             // D'abord, vérifions si le type de saisie est valide en soi
-            if (typeSaisie) {
+            if (normalizedTypeSaisie) {
                 validationResults.typeSaisie = "✅ OK";
-                logInfo(`Type de saisie détecté: "${typeSaisie}"`);
+                logInfo(`Type de saisie valide: "${normalizedTypeSaisie}"`);
             } else {
                 validationResults.typeSaisie = "❌ ÉCHEC";
                 errors.push("Le champ 'Type de saisie' est obligatoire.");
@@ -326,10 +443,12 @@
             }
 
             // Ensuite, vérification conditionnelle du service de rattachement
-            if (typeSaisie !== "SM") {
-                logInfo("Type de saisie différent de SM, vérification du service de rattachement...");
+            if (normalizedTypeSaisie !== "SM") {
+                logInfo(`Type de saisie (${normalizedTypeSaisie}) différent de SM, vérification du service de rattachement...`);
                 // Nettoyage des espaces potentiels
                 const cleanServiceRattachement = serviceRattachement.trim();
+                logInfo(`Service de rattachement à vérifier: "${cleanServiceRattachement}"`);
+                
                 if (!/^\d{5}$/.test(cleanServiceRattachement)) {
                     errors.push("Le champ 'Service de rattachement' est obligatoire et doit être un nombre à 5 chiffres.");
                     validationResults.serviceRattachementFormat = "❌ ÉCHEC";
@@ -339,7 +458,8 @@
                     logInfo("✅ Test réussi: Service de rattachement valide");
                 }
             } else {
-                logInfo("✅ Test ignoré: Type de saisie = SM, pas de vérification du service de rattachement");
+                validationResults.serviceRattachementFormat = "✅ OK (Ignoré)";
+                logInfo(`✅ Test ignoré: Type de saisie = ${normalizedTypeSaisie} (SM), pas de vérification du service de rattachement`);
             }
 
             // 4️⃣ Vérification de l'IDPP
