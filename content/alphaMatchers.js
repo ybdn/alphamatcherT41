@@ -315,21 +315,31 @@
 
             // 3️⃣ Vérification du Type / Type de saisie
             logInfo("3️⃣ Vérification du type de saisie...");
+            // D'abord, vérifions si le type de saisie est valide en soi
+            if (typeSaisie) {
+                validationResults.typeSaisie = "✅ OK";
+                logInfo(`Type de saisie détecté: "${typeSaisie}"`);
+            } else {
+                validationResults.typeSaisie = "❌ ÉCHEC";
+                errors.push("Le champ 'Type de saisie' est obligatoire.");
+                logInfo("❌ Test échoué: Type de saisie manquant");
+            }
+
+            // Ensuite, vérification conditionnelle du service de rattachement
             if (typeSaisie !== "SM") {
                 logInfo("Type de saisie différent de SM, vérification du service de rattachement...");
-                if (!/^\d{5}$/.test(serviceRattachement)) {
+                // Nettoyage des espaces potentiels
+                const cleanServiceRattachement = serviceRattachement.trim();
+                if (!/^\d{5}$/.test(cleanServiceRattachement)) {
                     errors.push("Le champ 'Service de rattachement' est obligatoire et doit être un nombre à 5 chiffres.");
-                    validationResults.typeSaisie = "❌ ÉCHEC";
                     validationResults.serviceRattachementFormat = "❌ ÉCHEC";
-                    logInfo("❌ Test échoué: Service de rattachement invalide");
+                    logInfo(`❌ Test échoué: Service de rattachement invalide: "${serviceRattachement}"`);
                 } else {
-                    validationResults.typeSaisie = "✅ OK";
                     validationResults.serviceRattachementFormat = "✅ OK";
                     logInfo("✅ Test réussi: Service de rattachement valide");
                 }
             } else {
-                validationResults.typeSaisie = "✅ OK (Type SM)";
-                logInfo("✅ Test ignoré: Type de saisie = SM");
+                logInfo("✅ Test ignoré: Type de saisie = SM, pas de vérification du service de rattachement");
             }
 
             // 4️⃣ Vérification de l'IDPP
@@ -464,7 +474,11 @@
                 highlightField("ficheEtabliePar");
             }
             
-            if (validationResults.typeSaisie === "❌ ÉCHEC" || validationResults.serviceRattachementFormat === "❌ ÉCHEC") {
+            if (validationResults.typeSaisie === "❌ ÉCHEC") {
+                highlightField("typeDeSignalisationValue");
+            }
+            
+            if (validationResults.serviceRattachementFormat === "❌ ÉCHEC") {
                 highlightField("serviceRattachement");
             }
             
@@ -535,6 +549,14 @@
                 }
             } else if (field === "serviceRattachement") {
                 const altSelector = "#formValidationCorrection\\:tabViewValidationFiche\\:ServiceRattachement";
+                const altElement = document.querySelector(altSelector);
+                if (altElement) {
+                    altElement.style.border = "2px solid #FF4136";
+                    altElement.style.backgroundColor = "#FFF5F5";
+                    logInfo(`Alternative utilisée pour mise en évidence: ${altSelector}`);
+                }
+            } else if (field === "typeDeSignalisationValue") {
+                const altSelector = "#formValidationCorrection\\:tabViewValidationFiche\\:typeDeSignalisationValue";
                 const altElement = document.querySelector(altSelector);
                 if (altElement) {
                     altElement.style.border = "2px solid #FF4136";
