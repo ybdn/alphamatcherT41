@@ -173,7 +173,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 500px;
+            width: 600px;
             max-height: 80vh;
             background-color: white;
             border: 2px solid #FF4136;
@@ -450,7 +450,7 @@
                 logInfo(`Service de rattachement à vérifier: "${cleanServiceRattachement}"`);
                 
                 if (!/^\d{5}$/.test(cleanServiceRattachement)) {
-                    errors.push("Le champ 'Service de rattachement' est obligatoire et doit être un nombre à 5 chiffres.");
+                    errors.push("Erreur : Service de rattachement et d'investigation/Terminal de saisie. Collez ce texte : Terminal de saisie : indiquer le code unité à cinq chiffres de l'unité dotée du matériel (ex : 02590)");
                     validationResults.serviceRattachementFormat = "❌ ÉCHEC";
                     logInfo(`❌ Test échoué: Service de rattachement invalide: "${serviceRattachement}"`);
                 } else {
@@ -474,7 +474,7 @@
                 
                 // Vérification du service de signalisation
                 if (serviceForbiddenTerms.test(serviceSignalisation)) {
-                    errors.push("Le champ 'Service de signalisation' ne doit pas contenir 'CELLULE', 'DEPARTEMENT' ou 'DÉPARTEMENT'.");
+                    errors.push("Erreur : Service de signalisation. Collez ce texte : Le service de signalisation est l'unité qui a réalisé le RDK.");
                     validationResults.serviceSignalisationFormat = "❌ ÉCHEC";
                     logInfo("❌ Test échoué: Service de signalisation contient CELLULE, DEPARTEMENT ou DÉPARTEMENT");
                 } else {
@@ -484,7 +484,7 @@
                 
                 // Vérification du service de rattachement (ne doit pas contenir 11707)
                 if (serviceRattachement.includes("11707")) {
-                    errors.push("Le champ 'Service de rattachement' ne doit pas contenir '11707'.");
+                    errors.push("Erreur : Service de rattachement et d'investigation/Terminal de saisie. Collez ce texte : Terminal de saisie : indiquer le code unité à cinq chiffres de l'unité dotée du matériel (ex : 02590)");
                     validationResults.serviceRattachementFormat = "❌ ÉCHEC";
                     logInfo("❌ Test échoué: Service de rattachement contient 11707");
                 } else if (validationResults.serviceRattachementFormat !== "❌ ÉCHEC") {
@@ -497,11 +497,11 @@
                 
                 // Vérification du format du service de signalisation
                 if (!(/\d+/.test(serviceSignalisation))) {
-                    errors.push("Le 'Service de signalisation' doit contenir du texte et des chiffres.");
+                    errors.push("Erreur : Service de signalisation. Collez ce texte : Le service de signalisation est l'unité qui a réalisé le RDK.");
                     validationResults.serviceSignalisationFormat = "❌ ÉCHEC";
                     logInfo("❌ Test échoué: Service de signalisation doit contenir des chiffres");
                 } else if (serviceForbiddenTerms.test(serviceSignalisation)) {
-                    errors.push("Le champ 'Service de signalisation' ne doit pas contenir 'CELLULE', 'DEPARTEMENT' ou 'DÉPARTEMENT'.");
+                    errors.push("Erreur : Service de signalisation. Collez ce texte : Le service de signalisation est l'unité qui a réalisé le RDK.");
                     validationResults.serviceSignalisationFormat = "❌ ÉCHEC";
                     logInfo("❌ Test échoué: Service de signalisation contient CELLULE, DEPARTEMENT ou DÉPARTEMENT");
                 } else {
@@ -511,7 +511,7 @@
                 
                 // Vérification du format UNA
                 if (!/^\d{5}\/\d{5}\/\d{4}$/.test(una)) {
-                    errors.push("Le champ 'UNA' doit être au format : 12345/12345/2024.");
+                    errors.push("Erreur : UNA. Collez ce texte : L'UNA doit être au format 5/5/4.");
                     validationResults.unaFormat = "❌ ÉCHEC";
                     logInfo("❌ Test échoué: Format UNA invalide");
                 } else {
