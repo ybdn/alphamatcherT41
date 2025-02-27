@@ -110,7 +110,9 @@ function executeMultipleActions(actions, sendResponse, actionIndex = 0) {
   if (actionIndex >= actions.length) {
     console.log("Toutes les actions de l'étape ont été exécutées.");
     currentStepIndex++;
-    sendResponse && sendResponse({ status: "next", step: "Actions terminées" });
+    if (sendResponse) {
+      sendResponse({ status: "next", step: "Actions terminées" });
+    }
     return;
   }
 
@@ -124,7 +126,9 @@ function executeMultipleActions(actions, sendResponse, actionIndex = 0) {
       executeMultipleActions(actions, sendResponse, actionIndex + 1); // Passer à l'action suivante
     } catch (error) {
       console.error(`Erreur lors de l'exécution de l'action : ${action.description}`, error);
-      sendResponse && sendResponse({ status: "error", step: action.description });
+      if (sendResponse) {
+        sendResponse({ status: "error", step: action.description });
+      }
     }
   });
 }
@@ -133,7 +137,9 @@ function executeMultipleActions(actions, sendResponse, actionIndex = 0) {
 function executeNextStep(sendResponse) {
   if (currentStepIndex >= steps.length) {
     console.log("Toutes les étapes ont été exécutées.");
-    sendResponse && sendResponse({ status: "done" });
+    if (sendResponse) {
+      sendResponse({ status: "done" });
+    }
     return;
   }
 
@@ -150,10 +156,14 @@ function executeNextStep(sendResponse) {
         step.action(element, fallbackElement);
         console.log(`Étape terminée : ${step.name}`);
         currentStepIndex++;
-        sendResponse && sendResponse({ status: "next", step: step.name });
+        if (sendResponse) {
+          sendResponse({ status: "next", step: step.name });
+        }
       } catch (error) {
         console.error(`Erreur lors de l'exécution de l'étape : ${step.name}`, error);
-        sendResponse && sendResponse({ status: "error", step: step.name });
+        if (sendResponse) {
+          sendResponse({ status: "error", step: step.name });
+        }
       }
     });
   } else {
@@ -163,10 +173,14 @@ function executeNextStep(sendResponse) {
         step.action(element);
         console.log(`Étape terminée : ${step.name}`);
         currentStepIndex++;
-        sendResponse && sendResponse({ status: "next", step: step.name });
+        if (sendResponse) {
+          sendResponse({ status: "next", step: step.name });
+        }
       } catch (error) {
         console.error(`Erreur lors de l'exécution de l'étape : ${step.name}`, error);
-        sendResponse && sendResponse({ status: "error", step: step.name });
+        if (sendResponse) {
+          sendResponse({ status: "error", step: step.name });
+        }
       }
     });
   }
