@@ -407,6 +407,19 @@
             }
 
             logInfo("✅ VALIDATION RÉUSSIE: Toutes les données sont conformes");
+            
+            // AJOUT: Déclencher automatiquement les actions suivantes
+            logInfo("🔄 Déclenchement automatique des étapes suivantes...");
+            
+            // Envoyer une commande pour exécuter la première étape
+            browser.runtime.sendMessage({
+                command: "executeContentScriptStep"
+            }).then(() => {
+                logInfo("✅ Message envoyé au script d'arrière-plan pour continuer le processus");
+            }).catch(error => {
+                logInfo(`❌ Erreur lors de l'envoi du message: ${error.message}`, error);
+            });
+            
             return true;
         } catch (error) {
             logInfo(`🔴 ERREUR TECHNIQUE: ${error.message}`, error);
@@ -549,13 +562,11 @@
         const result = verifyAlphaNumericData();
         if (result) {
             logInfo("✅✅✅ DONNÉES VALIDÉES AVEC SUCCÈS ✅✅✅");
-            // Si les données sont valides, on peut continuer avec la séquence normale
-            // Par exemple, en envoyant un message au contentScript pour poursuivre
-            return true;
+            // Nous ne retournons pas immédiatement, la suite est gérée dans verifyAlphaNumericData
         } else {
             logInfo("❌❌❌ ÉCHEC DE LA VALIDATION DES DONNÉES ❌❌❌");
-            return false;
         }
+        return result;
     }
 
     // Fonction pour désactiver le script
