@@ -314,16 +314,16 @@
             // 4️⃣ Vérification de l'IDPP
             logInfo("4️⃣ Vérification de l'IDPP...");
             if (idpp) {
-                logInfo("IDPP présent, vérification du service initiateur...");
+                logInfo("IDPP présent, vérification du service de signalisation...");
                 validationResults.idppCheck = "✅ OK";
                 
-                if (/CELLULE|DEPARTEMENTALE|DÉPARTEMENTALE/i.test(serviceInitiateur)) {
-                    errors.push("Le champ 'Service initiateur' ne doit pas contenir 'CELLULE' ou 'DÉPARTEMENTALE'.");
+                if (/CELLULE|DEPARTEMENT|DÉPARTEMENT/i.test(serviceInitiateur)) {
+                    errors.push("Le champ 'Service de signalisation' ne doit pas contenir 'CELLULE' ou 'DEPARTEMENT'.");
                     validationResults.serviceInitiateurFormat = "❌ ÉCHEC";
-                    logInfo("❌ Test échoué: Service initiateur contient CELLULE ou DEPARTEMENTALE");
+                    logInfo("❌ Test échoué: Service de signalisation contient CELLULE ou DEPARTEMENT");
                 } else {
                     validationResults.serviceInitiateurFormat = "✅ OK";
-                    logInfo("✅ Test réussi: Service initiateur valide");
+                    logInfo("✅ Test réussi: Service de signalisation valide");
                 }
             } else {
                 logInfo("IDPP absent, vérification des autres champs...");
