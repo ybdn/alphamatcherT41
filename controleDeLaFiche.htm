@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<head>
+			<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+			<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+			<meta name="apple-mobile-web-app-capable" content="yes" />
+			<link rel="shortcut icon" type="image/png" href="../resources/images/an.PNG" /><link type="text/css" rel="stylesheet" href="/mai-alphanu/faces/javax.faces.resource/theme.css?ln=primefaces-redmond" /><script type="text/javascript" src="/mai-alphanu/faces/javax.faces.resource/jquery/jquery.js?ln=primefaces&amp;v=5.0"></script><script type="text/javascript" src="/mai-alphanu/faces/javax.faces.resource/primefaces.js?ln=primefaces&amp;v=5.0"></script><link type="text/css" rel="stylesheet" href="/mai-alphanu/faces/javax.faces.resource/primefaces.css?ln=primefaces&amp;v=5.0" /><script type="text/javascript" src="/mai-alphanu/faces/javax.faces.resource/jquery/jquery-plugins.js?ln=primefaces&amp;v=5.0"></script>
+
+		<title></title>
+		<link rel="stylesheet" href="/mai-alphanu/faces/javax.faces.resource/css/an.css?1740284377943" />
+		<link rel="stylesheet" href="/mai-alphanu/faces/javax.faces.resource/css/autocomplete_table.css?1740284377943" />
+		<link rel="stylesheet" href="/mai-alphanu/faces/javax.faces.resource/css/datepicker.css?1740284377943" />
+		<script src="/mai-alphanu/faces/javax.faces.resource/js/perfect-scrollbar.js?1740284377943" type="text/javascript"></script>
+		<script src="/mai-alphanu/faces/javax.faces.resource/js/traitementEmpreinte.js?1740284377943" type="text/javascript"></script>
+		
+
+		
+		<script type="text/javascript">
+			history.pushState(null, null, 'pagename');
+			window.addEventListener('popstate', function(event) {
+				history.pushState(null, null, 'pagename');
+			});
+		</script></head><body>
+		<script type="text/javascript">
+			function start() {
+			    PF('statusDialog').show();
+			}
+			 
+			function stop() {
+			    PF('statusDialog').hide();
+			}
+		</script>
+<form id="idFormPingSession" name="idFormPingSession" method="post" action="/mai-alphanu/faces/pages/accueil/refreshPage.xhtml?cid=5" enctype="application/x-www-form-urlencoded">
+<input type="hidden" name="idFormPingSession" value="idFormPingSession" />
+<script id="idFormPingSession:j_idt9_s" type="text/javascript">$(function(){PrimeFaces.cw("Poll","widget_idFormPingSession_j_idt9",{id:"idFormPingSession:j_idt9",widgetVar:"widget_idFormPingSession_j_idt9",frequency:180,autoStart:true,fn:function(){PrimeFaces.ab({s:'idFormPingSession:j_idt9',f:'idFormPingSession',iau:true});}});});</script><input type="hidden" name="javax.faces.ViewState" id="javax.faces.ViewState" value="-4254607667632932167:-4212761407005979217" autocomplete="off" />
+</form>
+<form id="idFormDestroySession" name="idFormDestroySession" method="post" action="/mai-alphanu/faces/pages/accueil/refreshPage.xhtml?cid=5" enctype="application/x-www-form-urlencoded">
+<input type="hidden" name="idFormDestroySession" value="idFormDestroySession" />
+<script type="text/javascript">killsession = function() {PrimeFaces.ab({s:'idFormDestroySession:j_idt10',f:'idFormDestroySession',pa:arguments[0]});}</script><input type="hidden" name="javax.faces.ViewState" id="javax.faces.ViewState" value="-4254607667632932167:-4212761407005979217" autocomplete="off" />
+</form><div id="j_idt11" class="ui-dialog ui-widget ui-widget-content ui-overlay-hidden ui-corner-all ui-shadow"><div class="ui-dialog-titlebar ui-widget-header ui-helper-clearfix ui-corner-top"><span id="j_idt11_title" class="ui-dialog-title"></span></div><div class="ui-dialog-content ui-widget-content"><img id="j_idt12" src="/mai-alphanu/faces/javax.faces.resource/loading.gif?ln=images" alt="" class="loadingImg" /></div></div><script id="j_idt11_s" type="text/javascript">$(function(){PrimeFaces.cw("Dialog","statusDialog",{id:"j_idt11",widgetVar:"statusDialog",draggable:false,resizable:false,modal:true});});</script>
+<form id="erreurForm" name="erreurForm" method="post" action="/mai-alphanu/faces/pages/accueil/refreshPage.xhtml?cid=5" enctype="application/x-www-form-urlencoded">
+<input type="hidden" name="erreurForm" value="erreurForm" />
+<div id="erreurForm:dialogueErreur" class="ui-dialog ui-widget ui-widget-content ui-overlay-hidden ui-corner-all ui-shadow"><div class="ui-dialog-titlebar ui-widget-header ui-helper-clearfix ui-corner-top"><span id="erreurForm:dialogueErreur_title" class="ui-dialog-title">Erreur</span></div><div class="ui-dialog-content ui-widget-content">
+				<div style="width: 100%; height: 80%; text-align: center; display: table"><span style="display:table-cell; vertical-align:middle"></span>
+				</div>
+				<div style="width: 100%; text-align: center"><button id="erreurForm:j_idt16" name="erreurForm:j_idt16" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" onclick="PrimeFaces.ab({s:'erreurForm:j_idt16',u:'erreurForm:dialogueErreur'});return false;" type="submit"><span class="ui-button-text ui-c">OK</span></button><script id="erreurForm:j_idt16_s" type="text/javascript">PrimeFaces.cw("CommandButton","widget_erreurForm_j_idt16",{id:"erreurForm:j_idt16",widgetVar:"widget_erreurForm_j_idt16"});</script>
+				</div></div></div><script id="erreurForm:dialogueErreur_s" type="text/javascript">$(function(){PrimeFaces.cw("Dialog","widget_erreurForm_dialogueErreur",{id:"erreurForm:dialogueErreur",widgetVar:"widget_erreurForm_dialogueErreur",resizable:false,modal:true,width:"450",height:"180"});});</script><input type="hidden" name="javax.faces.ViewState" id="javax.faces.ViewState" value="-4254607667632932167:-4212761407005979217" autocomplete="off" />
+</form>
+		<div class="bodyContent"><span class="banner"><img src="/mai-alphanu/faces/javax.faces.resource/logo_MI.png?ln=images" style="margin-left: 30px" class="floatLeft" /><img src="/mai-alphanu/faces/javax.faces.resource/logoFAED_bandeau_sup.png?ln=images" style="margin-left: 20px" class="floatLeft" />
+				<div class="floatLeft zoneUtilisateur" style="margin-left:10px">Alphanu-1.1.0.46.Patch2b</div>
+				<div class="floatRight zoneUtilisateur"><table>
+<tbody>
+<tr>
+<td class="utilisateurInfo">347498 - GN00011707</td>
+<td><a id="helpLink" name="helpLink" href="/mai-alphanu/resources/files/2016_2000022340%20-%20FR-CJ-FAED%20-%20Guide%20d%27utilisation%20AlphaNu%203.0.pdf" target="_blank"><img src="/mai-alphanu/faces/javax.faces.resource/question.png?ln=images" style="border:none" /></a><div id="toolTipHelp" class="ui-tooltip ui-widget ui-widget-content ui-shadow ui-corner-all">Guide d'utilisation AlphaNu</div><script id="toolTipHelp_s" type="text/javascript">$(function(){PrimeFaces.cw("Tooltip","widget_toolTipHelp",{id:"toolTipHelp",widgetVar:"widget_toolTipHelp",showEffect:"fade",hideEffect:"fade",target:"helpLink"});});</script></td>
+</tr>
+</tbody>
+</table>
+
+				</div>
+				<div class="zoneTitre"></div></span>
+			<div class="push"></div>
+			<div style="margin-top: 80px">
+		<link rel="stylesheet" href="/mai-alphanu/faces/javax.faces.resource/css/home.css?1740284377943" />
+		<link rel="stylesheet" href="/mai-alphanu/faces/javax.faces.resource/css/popup_affichage_import_NIST.css?1740284377943" />
+		<script src="/mai-alphanu/faces/javax.faces.resource/js/i18n.js?1740284377943" type="text/javascript"></script>
+<form id="j_idt31" name="j_idt31" method="post" action="/mai-alphanu/faces/pages/accueil/refreshPage.xhtml?cid=5" enctype="application/x-www-form-urlencoded">
+<input type="hidden" name="j_idt31" value="j_idt31" />
+<label id="j_idt31:j_idt32" class="ui-outputlabel ui-widget">Une erreur de redirection a été détectée, vous pouvez cliquer sur ce </label>
+<script type="text/javascript" src="/mai-alphanu/faces/javax.faces.resource/jsf.js?ln=javax.faces"></script>
+<a id="j_idt31:redirect" href="#" style="font-size: 16px; color: blue !important; " onclick="mojarra.jsfcljs(document.getElementById('j_idt31'),{'j_idt31:redirect':'j_idt31:redirect'},'');return false">lien</a><label id="j_idt31:j_idt33" class="ui-outputlabel ui-widget"> pour retourner à la page d'accueil.</label><input type="hidden" name="javax.faces.ViewState" id="javax.faces.ViewState" value="-4254607667632932167:-4212761407005979217" autocomplete="off" />
+</form>
+			</div>
+
+			<div class="push"></div>
+		</div>
+		
+		
+		
+	
+	<script src="/mai-alphanu/faces/javax.faces.resource/js/common.js?1740284377943" type="text/javascript"></script>
+	<script src="/mai-alphanu/faces/javax.faces.resource/js/uploadUtils.js?1740284377943" type="text/javascript"></script>
+	<script src="/mai-alphanu/faces/javax.faces.resource/js/dialog.js?1740284377943" type="text/javascript"></script></body>
