@@ -44,9 +44,9 @@
     function getSelector(baseSelector, field) {
         if (domFormat === "tabView") {
             // Cas spéciaux pour certains champs
-            if (field === "serviceInitiateur") {
+            if (field === "serviceInitiateur" || field === "serviceSignalisation") {
                 return "#formValidationCorrection\\:tabViewValidationFiche\\:ServiceSignalisationListeActive_input";
-            } else if (field === "una") {
+            } else if (field === "una" || field === "numeroProcedure") {
                 return "#formValidationCorrection\\:tabViewValidationFiche\\:NumeroProcedure";
             } else if (field === "serviceRattachement") {
                 return "#formValidationCorrection\\:tabViewValidationFiche\\:ServiceRattachement";
@@ -56,11 +56,24 @@
                 return "#formValidationCorrection\\:tabViewValidationFiche\\:nom";
             } else if (field === "prenom") {
                 return "#formValidationCorrection\\:tabViewValidationFiche\\:prenom";
+            } else if (field === "identifiantGaspard" || field === "idpp") {
+                return "#formValidationCorrection\\:tabViewValidationFiche\\:identifiantGaspard";
+            } else if (field === "typeSaisie" || field === "typeDeSignalisation") {
+                return "#formValidationCorrection\\:tabViewValidationFiche\\:typeDeSignalisationValue";
             }
             // Format avec tabViewValidationFiche
             return "#formValidationCorrection\\:tabViewValidationFiche\\:" + field;
         } else {
             // Format direct
+            if (field === "serviceInitiateur" || field === "serviceSignalisation") {
+                return "#formValidationCorrection\\:ServiceSignalisationListeActive_input";
+            } else if (field === "una" || field === "numeroProcedure") {
+                return "#formValidationCorrection\\:NumeroProcedure";
+            } else if (field === "identifiantGaspard" || field === "idpp") {
+                return "#formValidationCorrection\\:identifiantGaspard";
+            } else if (field === "typeSaisie" || field === "typeDeSignalisation") {
+                return "#formValidationCorrection\\:typeDeSignalisationValue";
+            }
             return baseSelector;
         }
     }
@@ -226,7 +239,7 @@
                 
                 // Si le format n'est pas trouvé, essayer les deux formats
                 if (domFormat === "unknown" || domFormat === "notFound") {
-                    const altSelector = field === "serviceInitiateur" 
+                    const altSelector = field === "serviceInitiateur" || field === "serviceSignalisation"
                         ? "#formValidationCorrection\\:tabViewValidationFiche\\:ServiceSignalisationListeActive_input" 
                         : "#formValidationCorrection\\:" + field;
                     
@@ -246,16 +259,16 @@
             
             // Extraction des valeurs en utilisant la fonction robuste
             const idpp = getValue("#formValidationCorrection\\:identifiantGaspard", "identifiantGaspard");
-            const typeSaisie = getValue("#formValidationCorrection\\:typeDeSignalisationValue", "typeDeSignalisationValue");
+            const typeSaisie = getValue("#formValidationCorrection\\:typeDeSignalisationValue", "typeDeSignalisation");
             const nom = getValue("#formValidationCorrection\\:nom", "nom");
             const prenom = getValue("#formValidationCorrection\\:prenom", "prenom");
-            const serviceInitiateur = getValue("#formValidationCorrection\\:serviceInitiateur", "serviceInitiateur");
-            const una = getValue("#formValidationCorrection\\:una", "una");
+            const serviceSignalisation = getValue("#formValidationCorrection\\:serviceInitiateur", "serviceSignalisation");
+            const una = getValue("#formValidationCorrection\\:una", "numeroProcedure");
             const ficheEtabliePar = getValue("#formValidationCorrection\\:ficheEtabliePar", "ficheEtabliePar");
             const serviceRattachement = getValue("#formValidationCorrection\\:serviceRattachement", "serviceRattachement");
 
             logInfo("Résumé des valeurs extraites:", {
-                idpp, typeSaisie, nom, prenom, serviceInitiateur, una, ficheEtabliePar, serviceRattachement
+                idpp, typeSaisie, nom, prenom, serviceSignalisation, una, ficheEtabliePar, serviceRattachement
             });
 
             let errors = [];
@@ -264,18 +277,24 @@
                 frankDesmis: "Non vérifié",
                 typeSaisie: "Non vérifié",
                 idppCheck: "Non vérifié",
-                serviceInitiateurFormat: "Non vérifié",
+                serviceSignalisationFormat: "Non vérifié",
                 unaFormat: "Non vérifié",
                 serviceRattachementFormat: "Non vérifié"
             };
 
             // 2️⃣ Détection des NEO-TESTS
             logInfo("2️⃣ Vérification des mentions NEO-TEST...");
-            const hasNeoTest = [idpp, typeSaisie, nom, prenom, serviceInitiateur, una, ficheEtabliePar, serviceRattachement]
-                .some(field => field.toUpperCase().includes("NEOTEST") || field.toUpperCase().includes("NEO-TEST"));
+            const hasNeoTest = [idpp, typeSaisie, nom, prenom, serviceSignalisation, una, ficheEtabliePar, serviceRattachement]
+                .some(field => {
+                    const upperField = field.toUpperCase();
+                    return upperField.includes("NEOTEST") || 
+                           upperField.includes("NEO-TEST") ||
+                           upperField.includes("NEO") ||
+                           upperField.includes("TEST");
+                });
             
             if (hasNeoTest) {
-                errors.push("Présence d'une mention 'NEOTEST' ou 'NEO-TEST' détectée.");
+                errors.push("Présence d'une mention 'NEOTEST', 'NEO-TEST', 'NEO' ou 'TEST' détectée.");
                 validationResults.neotest = "❌ ÉCHEC";
                 logInfo("❌ Test échoué: mention NEO-TEST détectée");
             } else {
@@ -301,9 +320,11 @@
                 if (!/^\d{5}$/.test(serviceRattachement)) {
                     errors.push("Le champ 'Service de rattachement' est obligatoire et doit être un nombre à 5 chiffres.");
                     validationResults.typeSaisie = "❌ ÉCHEC";
+                    validationResults.serviceRattachementFormat = "❌ ÉCHEC";
                     logInfo("❌ Test échoué: Service de rattachement invalide");
                 } else {
                     validationResults.typeSaisie = "✅ OK";
+                    validationResults.serviceRattachementFormat = "✅ OK";
                     logInfo("✅ Test réussi: Service de rattachement valide");
                 }
             } else {
@@ -312,32 +333,53 @@
             }
 
             // 4️⃣ Vérification de l'IDPP
-            logInfo("4️⃣ Vérification de l'IDPP...");
+            logInfo("4️⃣ Vérification de l'IDPP et du Service de signalisation...");
+            
+            // Vérification si le service contient CELLULE ou DEPARTEMENT/DÉPARTEMENT
+            const serviceForbiddenTerms = /CELLULE|DEPARTEMENT|DÉPARTEMENT/i;
+            
             if (idpp) {
-                logInfo("IDPP présent, vérification du service de signalisation...");
+                logInfo("IDPP présent, vérification du service de signalisation et de rattachement...");
                 validationResults.idppCheck = "✅ OK";
                 
-                if (/CELLULE|DEPARTEMENT|DÉPARTEMENT/i.test(serviceInitiateur)) {
-                    errors.push("Le champ 'Service de signalisation' ne doit pas contenir 'CELLULE' ou 'DEPARTEMENT'.");
-                    validationResults.serviceInitiateurFormat = "❌ ÉCHEC";
-                    logInfo("❌ Test échoué: Service de signalisation contient CELLULE ou DEPARTEMENT");
+                // Vérification du service de signalisation
+                if (serviceForbiddenTerms.test(serviceSignalisation)) {
+                    errors.push("Le champ 'Service de signalisation' ne doit pas contenir 'CELLULE', 'DEPARTEMENT' ou 'DÉPARTEMENT'.");
+                    validationResults.serviceSignalisationFormat = "❌ ÉCHEC";
+                    logInfo("❌ Test échoué: Service de signalisation contient CELLULE, DEPARTEMENT ou DÉPARTEMENT");
                 } else {
-                    validationResults.serviceInitiateurFormat = "✅ OK";
+                    validationResults.serviceSignalisationFormat = "✅ OK";
                     logInfo("✅ Test réussi: Service de signalisation valide");
+                }
+                
+                // Vérification du service de rattachement (ne doit pas contenir 11707)
+                if (serviceRattachement.includes("11707")) {
+                    errors.push("Le champ 'Service de rattachement' ne doit pas contenir '11707'.");
+                    validationResults.serviceRattachementFormat = "❌ ÉCHEC";
+                    logInfo("❌ Test échoué: Service de rattachement contient 11707");
+                } else if (validationResults.serviceRattachementFormat !== "❌ ÉCHEC") {
+                    validationResults.serviceRattachementFormat = "✅ OK";
+                    logInfo("✅ Test réussi: Service de rattachement valide");
                 }
             } else {
                 logInfo("IDPP absent, vérification des autres champs...");
                 validationResults.idppCheck = "❌ IDPP manquant";
                 
-                if (!/\d+/.test(serviceInitiateur)) {
-                    errors.push("Le 'Service initiateur' doit contenir du texte et des chiffres.");
-                    validationResults.serviceInitiateurFormat = "❌ ÉCHEC";
-                    logInfo("❌ Test échoué: Service initiateur doit contenir des chiffres");
+                // Vérification du format du service de signalisation
+                if (!(/\d+/.test(serviceSignalisation))) {
+                    errors.push("Le 'Service de signalisation' doit contenir du texte et des chiffres.");
+                    validationResults.serviceSignalisationFormat = "❌ ÉCHEC";
+                    logInfo("❌ Test échoué: Service de signalisation doit contenir des chiffres");
+                } else if (serviceForbiddenTerms.test(serviceSignalisation)) {
+                    errors.push("Le champ 'Service de signalisation' ne doit pas contenir 'CELLULE', 'DEPARTEMENT' ou 'DÉPARTEMENT'.");
+                    validationResults.serviceSignalisationFormat = "❌ ÉCHEC";
+                    logInfo("❌ Test échoué: Service de signalisation contient CELLULE, DEPARTEMENT ou DÉPARTEMENT");
                 } else {
-                    validationResults.serviceInitiateurFormat = "✅ OK";
-                    logInfo("✅ Test réussi: Service initiateur contient des chiffres");
+                    validationResults.serviceSignalisationFormat = "✅ OK";
+                    logInfo("✅ Test réussi: Service de signalisation valide");
                 }
                 
+                // Vérification du format UNA
                 if (!/^\d{5}\/\d{5}\/\d{4}$/.test(una)) {
                     errors.push("Le champ 'UNA' doit être au format : 12345/12345/2024.");
                     validationResults.unaFormat = "❌ ÉCHEC";
@@ -345,15 +387,6 @@
                 } else {
                     validationResults.unaFormat = "✅ OK";
                     logInfo("✅ Test réussi: Format UNA valide");
-                }
-                
-                if (!/^\d{5}$/.test(serviceRattachement)) {
-                    errors.push("Le champ 'Service de rattachement' est obligatoire et doit être un nombre à 5 chiffres.");
-                    validationResults.serviceRattachementFormat = "❌ ÉCHEC";
-                    logInfo("❌ Test échoué: Service de rattachement invalide");
-                } else {
-                    validationResults.serviceRattachementFormat = "✅ OK";
-                    logInfo("✅ Test réussi: Service de rattachement valide");
                 }
             }
 
@@ -422,8 +455,8 @@
                 highlightField("serviceRattachement");
             }
             
-            if (validationResults.serviceInitiateurFormat === "❌ ÉCHEC") {
-                highlightField("serviceInitiateur");
+            if (validationResults.serviceSignalisationFormat === "❌ ÉCHEC") {
+                highlightField("serviceInitiateur"); // Utilise le sélecteur pour Service initiateur/signalisation
             }
             
             if (validationResults.unaFormat === "❌ ÉCHEC") {
