@@ -3,18 +3,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const nextActionButton = document.getElementById("next-action");
   const iconTrigger = document.getElementById("icon-trigger");
+  const appIcon = document.querySelector(".app-icon");
   
-  // Ajouter un élément pour afficher le statut
-  const statusElement = document.createElement("div");
-  statusElement.id = "status-indicator";
-  statusElement.style.cssText = `
-    margin-top: 10px;
-    padding: 5px;
-    border-radius: 4px;
-    font-size: 12px;
-    text-align: center;
-  `;
-  document.getElementById("script-card").appendChild(statusElement);
+  // Fonction pour mettre à jour l'icône en fonction du statut de validation
+  function updateIcon(hasError) {
+    if (hasError === null) {
+      // État initial ou indéterminé
+      appIcon.src = "/icons/icon-48.png";
+    } else if (hasError) {
+      // Erreurs détectées
+      appIcon.src = "/icons/icon-48-red.png";
+    } else {
+      // Pas d'erreur
+      appIcon.src = "/icons/icon-48-green.png";
+    }
+  }
 
   // Fonction pour récupérer l'onglet actif
   async function getActiveTab() {
@@ -32,17 +35,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return null;
     }
   }
-  
-  // Fonction pour mettre à jour le statut
-  function updateStatus(message, isError = false) {
-    const statusElement = document.getElementById("status-indicator");
-    if (statusElement) {
-      statusElement.textContent = message;
-      statusElement.style.backgroundColor = isError ? "#FFF5F5" : "#F0FFF4";
-      statusElement.style.color = isError ? "#FF4136" : "#38A169";
-      statusElement.style.border = `1px solid ${isError ? "#FF4136" : "#38A169"}`;
-    }
-  }
 
   // Fonction pour exécuter contentScript.js en cliquant sur "Lancer"
   if (nextActionButton) {
@@ -57,7 +49,6 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         // Vérifier d'abord les données alphanumériques
         console.log("Vérification des données alphanumériques...");
-        updateStatus("Vérification des données...");
         
         let alphaCheckResponse = await browser.tabs.sendMessage(tab.id, { 
           command: "checkAlphaNumeric" 
@@ -68,33 +59,27 @@ document.addEventListener("DOMContentLoaded", () => {
         if (alphaCheckResponse && alphaCheckResponse.result === true) {
           // Si la vérification est réussie, passer à l'étape suivante
           console.log("Données validées, passage à l'étape suivante");
-          updateStatus("Données validées ✓");
+          updateIcon(false); // Pas d'erreur
           
           let response = await browser.tabs.sendMessage(tab.id, { command: "nextStep" });
           console.log("Réponse reçue du content script :", response);
           
           if (response) {
             if (response.status === "done") {
-              updateStatus("Toutes les étapes terminées ✓");
               alert("Toutes les étapes ont été exécutées !");
-            } else if (response.status === "next") {
-              updateStatus(`Étape "${response.step}" terminée ✓`);
             } else if (response.status === "error") {
-              updateStatus(`Erreur: ${response.error || "Une erreur s'est produite"}`, true);
               console.error(`Erreur dans l'étape : ${response.step}`);
             }
           } else {
             console.warn("Aucune réponse reçue du content script.");
-            updateStatus("Aucune réponse reçue", true);
           }
         } else {
           // Si la vérification a échoué, afficher un message
           console.log("Données invalides, correction nécessaire");
-          updateStatus("Vérifiez les données et corrigez les erreurs", true);
+          updateIcon(true); // Erreur détectée
         }
       } catch (error) {
         console.error("Erreur lors de l'envoi du message :", error);
-        updateStatus("Erreur de communication avec la page", true);
       }
     });
   } else {
@@ -105,11 +90,10 @@ document.addEventListener("DOMContentLoaded", () => {
   if (iconTrigger) {
     iconTrigger.addEventListener("click", async () => {
       console.log("Icône cliquée, exécution de alphaMatchers.js...");
-      updateStatus("Lancement de la vérification...");
       
       let tab = await getActiveTab();
       if (!tab) {
-        updateStatus("Aucun onglet actif trouvé", true);
+        console.error("Aucun onglet actif trouvé");
         return;
       }
 
@@ -122,12 +106,12 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Réponse reçue:", response);
         if (response && response.success) {
           if (response.result) {
-            updateStatus("Données validées ✓");
+            updateIcon(false); // Pas d'erreur
           } else {
-            updateStatus("Données invalides, correction nécessaire", true);
+            updateIcon(true); // Erreur détectée
           }
         } else {
-          updateStatus("Erreur lors de la vérification", true);
+          console.error("Erreur lors de la vérification");
         }
       } catch (error) {
         console.error("❌ Erreur lors de l'exécution d'alphaMatchers.js :", error);
@@ -135,7 +119,6 @@ document.addEventListener("DOMContentLoaded", () => {
         // Si le script n'est pas injecté, tenter de l'injecter
         try {
           console.log("Tentative d'injection du script alphaMatchers.js...");
-          updateStatus("Injection du script...");
           
           await browser.scripting.executeScript({
             target: { tabId: tab.id },
@@ -154,16 +137,15 @@ document.addEventListener("DOMContentLoaded", () => {
           
           if (retryResponse && retryResponse.success) {
             if (retryResponse.result) {
-              updateStatus("Données validées ✓");
+              updateIcon(false); // Pas d'erreur
             } else {
-              updateStatus("Données invalides, correction nécessaire", true);
+              updateIcon(true); // Erreur détectée
             }
           } else {
-            updateStatus("Échec de la vérification", true);
+            console.error("Échec de la vérification");
           }
         } catch (injectionError) {
           console.error("Échec de l'injection du script:", injectionError);
-          updateStatus("Impossible d'injecter le script", true);
         }
       }
     });
@@ -180,9 +162,22 @@ document.addEventListener("DOMContentLoaded", () => {
       
       if (activeScriptResponse && activeScriptResponse.success) {
         if (activeScriptResponse.activeScript === "alphaMatchers") {
-          updateStatus("Vérification des données active");
-        } else if (activeScriptResponse.activeScript) {
-          updateStatus(`Script "${activeScriptResponse.activeScript}" actif`);
+          // Vérifier l'état actuel de la validation
+          let tab = await getActiveTab();
+          if (tab) {
+            try {
+              const checkResponse = await browser.tabs.sendMessage(tab.id, { 
+                command: "checkAlphaNumeric" 
+              });
+              
+              if (checkResponse && checkResponse.success) {
+                updateIcon(!checkResponse.result); // Mettre à jour l'icône selon le résultat
+              }
+            } catch (error) {
+              console.error("Erreur lors de la vérification initiale:", error);
+              updateIcon(null); // État indéterminé
+            }
+          }
         }
       }
     } catch (error) {
