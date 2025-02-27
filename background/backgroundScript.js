@@ -124,21 +124,21 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     browser.tabs.query({ active: true, currentWindow: true })
       .then(tabs => {
         if (tabs && tabs.length > 0 && tabs[0].id) {
-          console.log("Envoi de la commande nextStep à l'onglet:", tabs[0].id);
+          console.log("Envoi de la commande checkAlphaNumeric à l'onglet:", tabs[0].id);
           
-          // Envoyer la commande nextStep au content script
-          return browser.tabs.sendMessage(tabs[0].id, { command: "nextStep" });
+          // Envoyer la commande checkAlphaNumeric au script alphaMatchers
+          return browser.tabs.sendMessage(tabs[0].id, { command: "checkAlphaNumeric" });
         } else {
           console.error("Aucun onglet actif trouvé");
           return Promise.reject("Aucun onglet actif");
         }
       })
       .then(response => {
-        console.log("Réponse du content script:", response);
+        console.log("Réponse du script alphaMatchers:", response);
         sendResponse({ success: true, response });
       })
       .catch(error => {
-        console.error("Erreur lors de l'envoi de la commande nextStep:", error);
+        console.error("Erreur lors de l'envoi de la commande:", error);
         sendResponse({ success: false, error: error.toString() });
       });
     
@@ -162,11 +162,10 @@ browser.action.onClicked.addListener(async (tab) => {
       
       // Maintenant activer le script
       await browser.tabs.sendMessage(tab.id, { 
-        command: "startScript", 
-        script: "alphaMatchers" 
+        command: "checkAlphaNumeric" 
       });
       
-      console.log("Commande de démarrage envoyée à alphaMatchers.js");
+      console.log("Commande de vérification envoyée à alphaMatchers.js");
     } catch (error) {
       console.error("Erreur lors de l'activation de alphaMatchers.js:", error);
     }

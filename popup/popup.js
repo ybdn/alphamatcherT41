@@ -36,10 +36,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Fonction pour exécuter contentScript.js en cliquant sur "Lancer"
+  // Fonction pour exécuter alphaMatchers.js en cliquant sur "Lancer"
   if (nextActionButton) {
     nextActionButton.addEventListener("click", async () => {
-      console.log("Bouton 'Suivant' cliqué.");
+      console.log("Bouton 'Lancer' cliqué - Exécution d'alphaMatchers.js");
       let tab = await getActiveTab();
       if (!tab) {
         alert("Aucun onglet actif trouvé");
@@ -47,39 +47,76 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-        // Vérifier d'abord les données alphanumériques
-        console.log("Vérification des données alphanumériques...");
-        
-        let alphaCheckResponse = await browser.tabs.sendMessage(tab.id, { 
+        // Lancer la vérification des données alphanumériques
+        const response = await browser.tabs.sendMessage(tab.id, { 
           command: "checkAlphaNumeric" 
         });
         
-        console.log("Réponse de la vérification alphanumerique:", alphaCheckResponse);
+        console.log("Réponse de la vérification alphanumerique:", response);
         
-        if (alphaCheckResponse && alphaCheckResponse.result === true) {
-          // Si la vérification est réussie, passer à l'étape suivante
-          console.log("Données validées, passage à l'étape suivante");
-          updateIcon(false); // Pas d'erreur
-          
-          let response = await browser.tabs.sendMessage(tab.id, { command: "nextStep" });
-          console.log("Réponse reçue du content script :", response);
-          
-          if (response) {
-            if (response.status === "done") {
-              alert("Toutes les étapes ont été exécutées !");
-            } else if (response.status === "error") {
-              console.error(`Erreur dans l'étape : ${response.step}`);
-            }
+        if (response && response.success) {
+          if (response.result) {
+            updateIcon(false); // Pas d'erreur
           } else {
-            console.warn("Aucune réponse reçue du content script.");
+            updateIcon(true); // Erreur détectée
           }
         } else {
-          // Si la vérification a échoué, afficher un message
-          console.log("Données invalides, correction nécessaire");
-          updateIcon(true); // Erreur détectée
+          console.error("Erreur lors de la vérification alphanumerique");
+          
+          // Si le script n'est pas injecté, tenter de l'injecter
+          try {
+            console.log("Tentative d'injection du script alphaMatchers.js...");
+            
+            await browser.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: ["/content/alphaMatchers.js"]
+            });
+            
+            console.log("Script injecté, nouvelle tentative de vérification...");
+            
+            // Attendre un peu pour laisser le script s'initialiser
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Réessayer la vérification
+            const retryResponse = await browser.tabs.sendMessage(tab.id, { 
+              command: "checkAlphaNumeric" 
+            });
+            
+            if (retryResponse && retryResponse.success) {
+              if (retryResponse.result) {
+                updateIcon(false); // Pas d'erreur
+              } else {
+                updateIcon(true); // Erreur détectée
+              }
+            } else {
+              console.error("Échec de la vérification");
+            }
+          } catch (injectionError) {
+            console.error("Échec de l'injection du script:", injectionError);
+          }
         }
       } catch (error) {
         console.error("Erreur lors de l'envoi du message :", error);
+        
+        // Tenter l'injection si la commande échoue
+        try {
+          console.log("Erreur de communication, tentative d'injection...");
+          await browser.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ["/content/alphaMatchers.js"]
+          });
+          
+          console.log("Script injecté, nouvelle tentative...");
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const retryResponse = await browser.tabs.sendMessage(tab.id, { 
+            command: "checkAlphaNumeric" 
+          });
+          
+          console.log("Réponse après nouvelle tentative:", retryResponse);
+        } catch (injectionError) {
+          console.error("Échec complet:", injectionError);
+        }
       }
     });
   } else {
