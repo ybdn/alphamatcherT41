@@ -9,13 +9,13 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateIcon(hasError) {
     if (hasError === null) {
       // État initial ou indéterminé
-      appIcon.src = "/icons/icon-48.png";
+      appIcon.src = "../icons/icon-48.png";
     } else if (hasError) {
       // Erreurs détectées
-      appIcon.src = "/icons/icon-48-red.png";
+      appIcon.src = "../icons/icon-48-red.png";
     } else {
       // Pas d'erreur
-      appIcon.src = "/icons/icon-48-green.png";
+      appIcon.src = "../icons/icon-48-green.png";
     }
   }
 
