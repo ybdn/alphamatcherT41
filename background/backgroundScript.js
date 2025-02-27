@@ -117,6 +117,33 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("Action FAED détectée :", message.payload);
     sendResponse({ status: "Action reçue en arrière-plan." });
   }
+  else if (message.command === "executeContentScriptStep") {
+    console.log("Commande reçue pour exécuter une étape dans le content script");
+    
+    // Récupérer l'onglet actif
+    browser.tabs.query({ active: true, currentWindow: true })
+      .then(tabs => {
+        if (tabs && tabs.length > 0 && tabs[0].id) {
+          console.log("Envoi de la commande nextStep à l'onglet:", tabs[0].id);
+          
+          // Envoyer la commande nextStep au content script
+          return browser.tabs.sendMessage(tabs[0].id, { command: "nextStep" });
+        } else {
+          console.error("Aucun onglet actif trouvé");
+          return Promise.reject("Aucun onglet actif");
+        }
+      })
+      .then(response => {
+        console.log("Réponse du content script:", response);
+        sendResponse({ success: true, response });
+      })
+      .catch(error => {
+        console.error("Erreur lors de l'envoi de la commande nextStep:", error);
+        sendResponse({ success: false, error: error.toString() });
+      });
+    
+    return true; // Pour indiquer que sendResponse sera utilisé de manière asynchrone
+  }
 });
 
 // Gérer le clic sur l'icône - utiliser pour injecter alphaMatchers.js
