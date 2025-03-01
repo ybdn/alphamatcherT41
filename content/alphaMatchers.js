@@ -48,22 +48,53 @@
                 },
             ],
         },
+        // CORRECTION ICI : Nouvelle implémentation de la dernière étape
         {
             name: "Cliquer sur 'OK et suivant' ou 'OK'",
-            selector: "#formValidationCorrection\\:okSuivantValidationFicheSignalisation",
-            fallbackSelector: "#formValidationCorrection\\:terminerValidationFicheSignalisation",
-            action: (element, fallbackElement) => {
-                if (element && !element.disabled && element.getAttribute('aria-disabled') !== 'true') {
-                    console.log("Bouton 'OK et suivant' activé trouvé, clic en cours...");
-                    element.click();
-                } else if (fallbackElement) {
-                    console.log("Bouton 'OK et suivant' désactivé. Bouton 'OK' trouvé, clic en cours...");
-                    fallbackElement.click();
+            action: (sendResponse) => {
+                logInfo("🚀 Exécution de l'étape finale: Cliquer sur 'OK et suivant' ou 'OK'");
+                
+                // Vérifier d'abord si le dialogue est déjà visible
+                const dialog = document.querySelector("#formValidationCorrection\\:dialogueTerminerValidation");
+                
+                if (dialog && window.getComputedStyle(dialog).visibility === 'visible') {
+                    logInfo("✅ Dialogue déjà visible, recherche des boutons...");
+                    
+                    waitForDialogAndButtons((success) => {
+                        if (success) {
+                            logInfo("✅ Bouton cliqué avec succès");
+                            currentStepIndex++;
+                            if (sendResponse) {
+                                sendResponse({ status: "next", step: "Bouton de validation cliqué" });
+                            }
+                        } else {
+                            logInfo("❌ Échec du clic sur les boutons après plusieurs tentatives");
+                            if (sendResponse) {
+                                sendResponse({ status: "error", step: "Échec du clic sur les boutons" });
+                            }
+                        }
+                    });
                 } else {
-                    console.error("Aucun des boutons 'OK et suivant' ou 'OK' n'est disponible.");
+                    logInfo("⚠️ Dialogue non visible, attente de son apparition...");
+                    
+                    // Attendre que le dialogue apparaisse
+                    waitForDialogAndButtons((success) => {
+                        if (success) {
+                            logInfo("✅ Bouton cliqué avec succès après apparition du dialogue");
+                            currentStepIndex++;
+                            if (sendResponse) {
+                                sendResponse({ status: "next", step: "Bouton de validation cliqué" });
+                            }
+                        } else {
+                            logInfo("❌ Échec du clic sur les boutons après plusieurs tentatives");
+                            if (sendResponse) {
+                                sendResponse({ status: "error", step: "Échec du clic sur les boutons" });
+                            }
+                        }
+                    });
                 }
-            },
-        },
+            }
+        }
     ];
 
     // Fonction pour journaliser les informations avec un format cohérent
@@ -102,6 +133,141 @@
                 callback();
             }
         }, 200); // Vérifier toutes les 200ms
+    }
+
+    // NOUVELLE FONCTION: Attendre la visibilité du dialogue et des boutons
+    function waitForDialogAndButtons(callback, maxAttempts = 30) {
+        let attempts = 0;
+        
+        function checkDialog() {
+            // Vérifier d'abord si un indicateur de chargement est présent
+            if (isLoadingIndicatorPresent()) {
+                logInfo("🔄 Indicateur de chargement détecté, attente avant de vérifier le dialogue...");
+                setTimeout(checkDialog, 500);
+                return;
+            }
+            
+            // Trouver le dialogue de confirmation
+            const dialog = document.querySelector("#formValidationCorrection\\:dialogueTerminerValidation");
+            
+            // Vérifier si le dialogue existe et s'il est visible
+            if (dialog && 
+                window.getComputedStyle(dialog).visibility === 'visible' && 
+                dialog.getAttribute('aria-hidden') !== 'true') {
+                
+                logInfo("✅ Dialogue de confirmation trouvé et visible, recherche des boutons...");
+                
+                // Trouver les boutons dans le dialogue
+                const okButton = document.querySelector("#formValidationCorrection\\:terminerValidationFicheSignalisation");
+                const okNextButton = document.querySelector("#formValidationCorrection\\:okSuivantValidationFicheSignalisation");
+                
+                // Vérifier l'état des boutons et les rendre accessibles si nécessaire
+                if (okButton) {
+                    logInfo("✅ Bouton 'OK' trouvé:", okButton.outerHTML);
+                    
+                    // Si le bouton OK est actif, procéder à l'action
+                    if (!okButton.disabled && okButton.getAttribute('aria-disabled') !== 'true') {
+                        logInfo("🖱️ Clic sur le bouton 'OK'...");
+                        try {
+                            // Essayer plusieurs méthodes de clic pour maximiser les chances de succès
+                            okButton.click();
+                            // Méthode alternative au cas où
+                            setTimeout(() => {
+                                try {
+                                    const event = new MouseEvent('click', {
+                                        bubbles: true,
+                                        cancelable: true,
+                                        view: window
+                                    });
+                                    okButton.dispatchEvent(event);
+                                } catch (e) {
+                                    logInfo("Alternative MouseEvent échouée:", e);
+                                }
+                            }, 300);
+                            
+                            callback(true);
+                            return;
+                        } catch (error) {
+                            logInfo("❌ Erreur lors du clic sur 'OK':", error);
+                        }
+                    }
+                }
+                
+                // Essayer OK et suivant si disponible
+                if (okNextButton && !okNextButton.disabled && okNextButton.getAttribute('aria-disabled') !== 'true') {
+                    logInfo("✅ Bouton 'OK et suivant' trouvé et actif:", okNextButton.outerHTML);
+                    try {
+                        logInfo("🖱️ Clic sur le bouton 'OK et suivant'...");
+                        okNextButton.click();
+                        // Méthode alternative au cas où
+                        setTimeout(() => {
+                            try {
+                                const event = new MouseEvent('click', {
+                                    bubbles: true,
+                                    cancelable: true,
+                                    view: window
+                                });
+                                okNextButton.dispatchEvent(event);
+                            } catch (e) {
+                                logInfo("Alternative MouseEvent échouée:", e);
+                            }
+                        }, 300);
+                        
+                        callback(true);
+                        return;
+                    } catch (error) {
+                        logInfo("❌ Erreur lors du clic sur 'OK et suivant':", error);
+                    }
+                }
+                
+                // Si les boutons ne sont pas activés, essayer de les activer
+                if (okButton && (okButton.disabled || okButton.getAttribute('aria-disabled') === 'true')) {
+                    logInfo("⚠️ Bouton 'OK' désactivé, tentative d'activation...");
+                    try {
+                        // Tenter de supprimer les attributs qui empêchent le clic
+                        okButton.disabled = false;
+                        okButton.removeAttribute('disabled');
+                        okButton.setAttribute('aria-disabled', 'false');
+                        
+                        // Retirer les classes CSS qui peuvent bloquer le bouton
+                        okButton.classList.remove('ui-state-disabled');
+                        
+                        setTimeout(() => {
+                            try {
+                                logInfo("🖱️ Nouvelle tentative de clic sur 'OK'...");
+                                okButton.click();
+                                callback(true);
+                            } catch (e) {
+                                logInfo("❌ Nouvelle tentative échouée:", e);
+                            }
+                        }, 200);
+                    } catch (error) {
+                        logInfo("❌ Erreur lors de l'activation du bouton:", error);
+                    }
+                }
+                
+                attempts++;
+                if (attempts < maxAttempts) {
+                    logInfo(`⏳ Attente pour le dialogue et les boutons (tentative ${attempts}/${maxAttempts})...`);
+                    setTimeout(checkDialog, 300);
+                } else {
+                    logInfo("⛔ Nombre maximum de tentatives atteint pour trouver les boutons actifs");
+                    callback(false);
+                }
+            } else {
+                attempts++;
+                if (attempts < maxAttempts) {
+                    logInfo(`⏳ Attente pour le dialogue (tentative ${attempts}/${maxAttempts})...`);
+                    setTimeout(checkDialog, 300);
+                } else {
+                    logInfo("⛔ Délai dépassé en attendant le dialogue");
+                    callback(false);
+                }
+            }
+        }
+        
+        // Démarrer la vérification
+        checkDialog();
     }
 
     // Fonction pour détecter le format DOM de la page actuelle
@@ -961,6 +1127,17 @@
                     }
                 }
             });
+        } else if (typeof step.action === 'function' && !step.selector) {
+            // Étape spéciale avec fonction personnalisée (comme la dernière étape)
+            try {
+                step.action(sendResponse);
+                // Ne pas incrémenter currentStepIndex ici car la fonction s'en charge
+            } catch (error) {
+                logInfo(`Erreur lors de l'exécution de l'étape personnalisée : ${step.name}`, error);
+                if (sendResponse) {
+                    sendResponse({ status: "error", step: step.name });
+                }
+            }
         } else {
             // Étape classique
             waitForElement(step.selector, (element) => {
@@ -1090,7 +1267,8 @@
             deactivateScript,
             detectDOMFormat,
             executeNextStep,
-            isLoadingIndicatorPresent
+            isLoadingIndicatorPresent,
+            waitForDialogAndButtons
         };
     } else if (typeof module !== 'undefined' && module.exports) {
         // Export pour les tests Node.js
@@ -1103,7 +1281,8 @@
             deactivateScript,
             detectDOMFormat,
             executeNextStep,
-            isLoadingIndicatorPresent
+            isLoadingIndicatorPresent,
+            waitForDialogAndButtons
         };
     }
 })(); // Fin de l'IIFE
