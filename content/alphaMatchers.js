@@ -76,6 +76,34 @@
         }
     }
 
+    // Fonction pour vérifier la présence de l'indicateur de chargement
+    function isLoadingIndicatorPresent() {
+        const loadingIndicator = document.querySelector('.blockUI.blockMsg.blockElement.pe-blockui');
+        const result = !!loadingIndicator;
+        if (result) {
+            logInfo("🔄 Indicateur de chargement détecté");
+        }
+        return result;
+    }
+
+    // Fonction pour attendre que l'indicateur de chargement disparaisse
+    function waitForLoadingToComplete(callback, timeout = 30000) {
+        const startTime = Date.now();
+        logInfo("⏳ Attente de la fin du chargement...");
+        
+        const interval = setInterval(() => {
+            if (!isLoadingIndicatorPresent()) {
+                clearInterval(interval);
+                logInfo("✅ Indicateur de chargement disparu, reprise de l'exécution");
+                callback();
+            } else if (Date.now() - startTime > timeout) {
+                clearInterval(interval);
+                logInfo("⚠️ Délai d'attente dépassé pour l'indicateur de chargement");
+                callback();
+            }
+        }, 200); // Vérifier toutes les 200ms
+    }
+
     // Fonction pour détecter le format DOM de la page actuelle
     function detectDOMFormat() {
         // Vérifier d'abord si les éléments incluent tabViewValidationFiche
@@ -361,6 +389,20 @@
     function verifyAlphaNumericData() {
         logInfo("⭐ DÉBUT DE LA VÉRIFICATION DES DONNÉES ALPHANUMÉRIQUES ⭐");
 
+        // Vérification de l'indicateur de chargement avant de commencer
+        if (isLoadingIndicatorPresent()) {
+            logInfo("🔄 Indicateur de chargement détecté, mise en attente de la vérification");
+            waitForLoadingToComplete(() => {
+                performVerification();
+            });
+            return false;
+        } else {
+            return performVerification();
+        }
+    }
+
+    // Fonction interne qui effectue la vérification des données
+    function performVerification() {
         try {
             // Détection du format DOM si pas encore fait
             if (!domFormat) {
@@ -748,9 +790,32 @@
     // Fonctions pour l'automatisation (intégrées depuis contentScript.js)
     // Fonction pour attendre un élément ou un fallback
     function waitForElementOrFallback(selector, fallbackSelector, callback, timeout = 5000) {
+        // Vérifier d'abord si l'indicateur de chargement est présent
+        if (isLoadingIndicatorPresent()) {
+            logInfo(`🔄 Indicateur de chargement détecté, mise en attente avant de chercher ${selector} ou ${fallbackSelector}`);
+            waitForLoadingToComplete(() => {
+                waitForElementOrFallbackInternal(selector, fallbackSelector, callback, timeout);
+            });
+        } else {
+            waitForElementOrFallbackInternal(selector, fallbackSelector, callback, timeout);
+        }
+    }
+
+    // Fonction interne pour attendre un élément ou un fallback
+    function waitForElementOrFallbackInternal(selector, fallbackSelector, callback, timeout = 5000) {
         const startTime = Date.now();
         const interval = setInterval(() => {
             try {
+                // Vérifier à nouveau l'indicateur de chargement pendant la recherche de l'élément
+                if (isLoadingIndicatorPresent()) {
+                    clearInterval(interval);
+                    logInfo(`🔄 Indicateur de chargement détecté pendant la recherche de ${selector} ou ${fallbackSelector}, reprise de l'attente`);
+                    waitForLoadingToComplete(() => {
+                        waitForElementOrFallbackInternal(selector, fallbackSelector, callback, timeout - (Date.now() - startTime));
+                    });
+                    return;
+                }
+                
                 const element = document.querySelector(selector);
                 const fallbackElement = fallbackSelector ? document.querySelector(fallbackSelector) : null;
 
@@ -770,9 +835,32 @@
 
     // Fonction pour attendre un élément
     function waitForElement(selector, callback, timeout = 5000) {
+        // Vérifier d'abord si l'indicateur de chargement est présent
+        if (isLoadingIndicatorPresent()) {
+            logInfo(`🔄 Indicateur de chargement détecté, mise en attente avant de chercher ${selector}`);
+            waitForLoadingToComplete(() => {
+                waitForElementInternal(selector, callback, timeout);
+            });
+        } else {
+            waitForElementInternal(selector, callback, timeout);
+        }
+    }
+
+    // Fonction interne pour attendre un élément
+    function waitForElementInternal(selector, callback, timeout = 5000) {
         const startTime = Date.now();
         const interval = setInterval(() => {
             try {
+                // Vérifier à nouveau l'indicateur de chargement pendant la recherche de l'élément
+                if (isLoadingIndicatorPresent()) {
+                    clearInterval(interval);
+                    logInfo(`🔄 Indicateur de chargement détecté pendant la recherche de ${selector}, reprise de l'attente`);
+                    waitForLoadingToComplete(() => {
+                        waitForElementInternal(selector, callback, timeout - (Date.now() - startTime));
+                    });
+                    return;
+                }
+                
                 const element = document.querySelector(selector);
                 if (element) {
                     clearInterval(interval);
@@ -790,6 +878,18 @@
 
     // Fonction pour exécuter les étapes contenant plusieurs actions
     function executeMultipleActions(actions, sendResponse, actionIndex = 0) {
+        if (isLoadingIndicatorPresent()) {
+            logInfo(`🔄 Indicateur de chargement détecté avant l'exécution de l'action ${actionIndex}, mise en attente`);
+            waitForLoadingToComplete(() => {
+                executeMultipleActionsInternal(actions, sendResponse, actionIndex);
+            });
+        } else {
+            executeMultipleActionsInternal(actions, sendResponse, actionIndex);
+        }
+    }
+
+    // Fonction interne pour exécuter plusieurs actions
+    function executeMultipleActionsInternal(actions, sendResponse, actionIndex = 0) {
         if (actionIndex >= actions.length) {
             logInfo("Toutes les actions de l'étape ont été exécutées.");
             currentStepIndex++;
@@ -818,6 +918,18 @@
 
     // Fonction pour exécuter une étape
     function executeNextStep(sendResponse) {
+        if (isLoadingIndicatorPresent()) {
+            logInfo("🔄 Indicateur de chargement détecté avant l'exécution de l'étape suivante, mise en attente");
+            waitForLoadingToComplete(() => {
+                executeNextStepInternal(sendResponse);
+            });
+        } else {
+            executeNextStepInternal(sendResponse);
+        }
+    }
+
+    // Fonction interne pour exécuter l'étape suivante
+    function executeNextStepInternal(sendResponse) {
         if (currentStepIndex >= steps.length) {
             logInfo("Toutes les étapes ont été exécutées.");
             if (sendResponse) {
@@ -977,7 +1089,8 @@
             activateScript,
             deactivateScript,
             detectDOMFormat,
-            executeNextStep
+            executeNextStep,
+            isLoadingIndicatorPresent
         };
     } else if (typeof module !== 'undefined' && module.exports) {
         // Export pour les tests Node.js
@@ -989,7 +1102,8 @@
             activateScript,
             deactivateScript,
             detectDOMFormat,
-            executeNextStep
+            executeNextStep,
+            isLoadingIndicatorPresent
         };
     }
 })(); // Fin de l'IIFE
