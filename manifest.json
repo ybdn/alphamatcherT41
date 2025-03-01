@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Assistance T41",
-  "version": "3.0",
+  "version": "4.0",
   "description": "Script pour assister les opérateurs FAED dans le contrôle des fiches de signalisation",
   
   "permissions": [
@@ -26,7 +26,7 @@
         "https://faed.ppsso.gendarmerie.fr/*",
         "https://faed.sso.gendarmerie.fr/*"
       ],
-      "js": ["content/contentScript.js", "content/alphaMatchers.js"]
+      "js": ["content/alphaMatchers.js"]
     }
   ],
   

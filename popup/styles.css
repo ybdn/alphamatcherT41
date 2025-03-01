@@ -1,3 +1,4 @@
+
 :root {
     --popup-default-height: 80px;
     --background-light: #ffffff;
@@ -26,7 +27,7 @@ body{
     gap: 10px;
     overflow: hidden;
     height: 80px;
-    padding : 10px 0px;
+    padding : 10px 0px 5px 0px;
 }
 
 /* 📋 Cartes */
@@ -34,7 +35,9 @@ body{
     background: var(--card-light);
     border: 1px solid var(--border-light);
     border-radius: 15px;
-    padding: 15px;
+    padding : 15px;
+    margin-right : 5px;
+    margin-left: 5px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -42,7 +45,14 @@ body{
     overflow: hidden;
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
-
+.card p{
+  padding-left: 0px;
+  font-weight : 500;
+  
+}
+.card button{
+  margin-right : 0px;
+}
 /* 📌 Header */
 .header {
     display: flex;
@@ -71,7 +81,7 @@ body{
 
 .icon-button {
     border : none;
-	background : none;
+	  background : none;
 }
 
 /* 📷 Logo */
@@ -87,6 +97,6 @@ body{
   padding-left: 20px;
 }
 
-.fixed-height {
-    height: 80px;
+body{
+  border: 1px solid black;
 }

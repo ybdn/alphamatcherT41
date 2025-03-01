@@ -4,6 +4,67 @@
     let isActive = false;
     let alphaStepIndex = 0; // Renommé pour éviter le conflit
     let domFormat = null; // Variable pour stocker le format DOM détecté
+    let currentStepIndex = 0; // Pour suivre l'état des étapes d'automatisation
+
+    // Définition des étapes de l'automatisation (intégrées depuis contentScript.js)
+    const steps = [
+        {
+            name: "Cocher 'Non' dans la page alpha numérique, puis cliquer sur l'onglet Portraits",
+            actions: [
+                {
+                    description: "Cocher 'Non'",
+                    selector: "label[for='formValidationCorrection:decisionValidationAlphaPortraits:1']",
+                    action: (element) => element.click(),
+                },
+                {
+                    description: "Cliquer sur l'onglet Portraits",
+                    selector: "a[href='#formValidationCorrection:tabViewValidationFiche:tab1']",
+                    action: (element) => element.click(),
+                },
+            ],
+        },
+        {
+            name: "Cliquer sur l'onglet Empreintes (doigts)",
+            selector: "a[href='#formValidationCorrection:tabViewValidationFiche:tab2']",
+            action: (element) => element.click(),
+        },
+        {
+            name: "Cliquer sur l'onglet Empreintes (paumes)",
+            selector: "a[href='#formValidationCorrection:tabViewValidationFiche:tab3']",
+            action: (element) => element.click(),
+        },
+        {
+            name: "Cocher 'Non' dans la page paume et cliquer sur 'Terminer'",
+            actions: [
+                {
+                    description: "Cocher 'Non' dans la page paume",
+                    selector: "label[for='formValidationCorrection:decisionsErreursEmpreintes:1']",
+                    action: (element) => element.click(),
+                },
+                {
+                    description: "Cliquer sur 'Terminer'",
+                    selector: "#formValidationCorrection\\:terminerControleBoutton",
+                    action: (element) => element.click(),
+                },
+            ],
+        },
+        {
+            name: "Cliquer sur 'OK et suivant' ou 'OK'",
+            selector: "#formValidationCorrection\\:okSuivantValidationFicheSignalisation",
+            fallbackSelector: "#formValidationCorrection\\:terminerValidationFicheSignalisation",
+            action: (element, fallbackElement) => {
+                if (element && !element.disabled && element.getAttribute('aria-disabled') !== 'true') {
+                    console.log("Bouton 'OK et suivant' activé trouvé, clic en cours...");
+                    element.click();
+                } else if (fallbackElement) {
+                    console.log("Bouton 'OK et suivant' désactivé. Bouton 'OK' trouvé, clic en cours...");
+                    fallbackElement.click();
+                } else {
+                    console.error("Aucun des boutons 'OK et suivant' ou 'OK' n'est disponible.");
+                }
+            },
+        },
+    ];
 
     // Fonction pour journaliser les informations avec un format cohérent
     function logInfo(message, data = null) {
@@ -13,6 +74,34 @@
         } else {
             console.log(`[${timestamp}] 🔷 AlphaMatchers: ${message}`);
         }
+    }
+
+    // Fonction pour vérifier la présence de l'indicateur de chargement
+    function isLoadingIndicatorPresent() {
+        const loadingIndicator = document.querySelector('.blockUI.blockMsg.blockElement.pe-blockui');
+        const result = !!loadingIndicator;
+        if (result) {
+            logInfo("🔄 Indicateur de chargement détecté");
+        }
+        return result;
+    }
+
+    // Fonction pour attendre que l'indicateur de chargement disparaisse
+    function waitForLoadingToComplete(callback, timeout = 30000) {
+        const startTime = Date.now();
+        logInfo("⏳ Attente de la fin du chargement...");
+        
+        const interval = setInterval(() => {
+            if (!isLoadingIndicatorPresent()) {
+                clearInterval(interval);
+                logInfo("✅ Indicateur de chargement disparu, reprise de l'exécution");
+                callback();
+            } else if (Date.now() - startTime > timeout) {
+                clearInterval(interval);
+                logInfo("⚠️ Délai d'attente dépassé pour l'indicateur de chargement");
+                callback();
+            }
+        }, 200); // Vérifier toutes les 200ms
     }
 
     // Fonction pour détecter le format DOM de la page actuelle
@@ -263,7 +352,10 @@
             errorWindow.remove();
             // Continuer le processus si l'utilisateur choisit d'ignorer
             logInfo("L'utilisateur a choisi d'ignorer les erreurs et de continuer");
-            // On pourrait ajouter ici un callback ou un événement pour continuer le flux
+            // Déclencher automatiquement les étapes suivantes
+            executeNextStep((response) => {
+                logInfo("Continuation automatique après ignorer les erreurs:", response);
+            });
         };
         
         const fixButton = document.createElement('button');
@@ -297,6 +389,20 @@
     function verifyAlphaNumericData() {
         logInfo("⭐ DÉBUT DE LA VÉRIFICATION DES DONNÉES ALPHANUMÉRIQUES ⭐");
 
+        // Vérification de l'indicateur de chargement avant de commencer
+        if (isLoadingIndicatorPresent()) {
+            logInfo("🔄 Indicateur de chargement détecté, mise en attente de la vérification");
+            waitForLoadingToComplete(() => {
+                performVerification();
+            });
+            return false;
+        } else {
+            return performVerification();
+        }
+    }
+
+    // Fonction interne qui effectue la vérification des données
+    function performVerification() {
         try {
             // Détection du format DOM si pas encore fait
             if (!domFormat) {
@@ -538,16 +644,10 @@
 
             logInfo("✅ VALIDATION RÉUSSIE: Toutes les données sont conformes");
             
-            // AJOUT: Déclencher automatiquement les actions suivantes
+            // Déclencher automatiquement les étapes suivantes
             logInfo("🔄 Déclenchement automatique des étapes suivantes...");
-            
-            // Envoyer une commande pour exécuter la première étape
-            browser.runtime.sendMessage({
-                command: "executeContentScriptStep"
-            }).then(() => {
-                logInfo("✅ Message envoyé au script d'arrière-plan pour continuer le processus");
-            }).catch(error => {
-                logInfo(`❌ Erreur lors de l'envoi du message: ${error.message}`, error);
+            executeNextStep((response) => {
+                logInfo("✅ Réponse de l'exécution de l'étape:", response);
             });
             
             return true;
@@ -687,10 +787,205 @@
         }
     }
 
+    // Fonctions pour l'automatisation (intégrées depuis contentScript.js)
+    // Fonction pour attendre un élément ou un fallback
+    function waitForElementOrFallback(selector, fallbackSelector, callback, timeout = 5000) {
+        // Vérifier d'abord si l'indicateur de chargement est présent
+        if (isLoadingIndicatorPresent()) {
+            logInfo(`🔄 Indicateur de chargement détecté, mise en attente avant de chercher ${selector} ou ${fallbackSelector}`);
+            waitForLoadingToComplete(() => {
+                waitForElementOrFallbackInternal(selector, fallbackSelector, callback, timeout);
+            });
+        } else {
+            waitForElementOrFallbackInternal(selector, fallbackSelector, callback, timeout);
+        }
+    }
+
+    // Fonction interne pour attendre un élément ou un fallback
+    function waitForElementOrFallbackInternal(selector, fallbackSelector, callback, timeout = 5000) {
+        const startTime = Date.now();
+        const interval = setInterval(() => {
+            try {
+                // Vérifier à nouveau l'indicateur de chargement pendant la recherche de l'élément
+                if (isLoadingIndicatorPresent()) {
+                    clearInterval(interval);
+                    logInfo(`🔄 Indicateur de chargement détecté pendant la recherche de ${selector} ou ${fallbackSelector}, reprise de l'attente`);
+                    waitForLoadingToComplete(() => {
+                        waitForElementOrFallbackInternal(selector, fallbackSelector, callback, timeout - (Date.now() - startTime));
+                    });
+                    return;
+                }
+                
+                const element = document.querySelector(selector);
+                const fallbackElement = fallbackSelector ? document.querySelector(fallbackSelector) : null;
+
+                if ((element && !element.disabled && element.getAttribute('aria-disabled') !== 'true') || fallbackElement) {
+                    clearInterval(interval);
+                    callback(element, fallbackElement);
+                } else if (Date.now() - startTime > timeout) {
+                    clearInterval(interval);
+                    logInfo(`Aucun élément trouvé pour les sélecteurs : ${selector}, ${fallbackSelector}`);
+                }
+            } catch (error) {
+                clearInterval(interval);
+                logInfo("Erreur dans waitForElementOrFallback :", error);
+            }
+        }, 100);
+    }
+
+    // Fonction pour attendre un élément
+    function waitForElement(selector, callback, timeout = 5000) {
+        // Vérifier d'abord si l'indicateur de chargement est présent
+        if (isLoadingIndicatorPresent()) {
+            logInfo(`🔄 Indicateur de chargement détecté, mise en attente avant de chercher ${selector}`);
+            waitForLoadingToComplete(() => {
+                waitForElementInternal(selector, callback, timeout);
+            });
+        } else {
+            waitForElementInternal(selector, callback, timeout);
+        }
+    }
+
+    // Fonction interne pour attendre un élément
+    function waitForElementInternal(selector, callback, timeout = 5000) {
+        const startTime = Date.now();
+        const interval = setInterval(() => {
+            try {
+                // Vérifier à nouveau l'indicateur de chargement pendant la recherche de l'élément
+                if (isLoadingIndicatorPresent()) {
+                    clearInterval(interval);
+                    logInfo(`🔄 Indicateur de chargement détecté pendant la recherche de ${selector}, reprise de l'attente`);
+                    waitForLoadingToComplete(() => {
+                        waitForElementInternal(selector, callback, timeout - (Date.now() - startTime));
+                    });
+                    return;
+                }
+                
+                const element = document.querySelector(selector);
+                if (element) {
+                    clearInterval(interval);
+                    callback(element);
+                } else if (Date.now() - startTime > timeout) {
+                    clearInterval(interval);
+                    logInfo(`Élément introuvable : ${selector}`);
+                }
+            } catch (error) {
+                clearInterval(interval);
+                logInfo("Erreur dans waitForElement :", error);
+            }
+        }, 100);
+    }
+
+    // Fonction pour exécuter les étapes contenant plusieurs actions
+    function executeMultipleActions(actions, sendResponse, actionIndex = 0) {
+        if (isLoadingIndicatorPresent()) {
+            logInfo(`🔄 Indicateur de chargement détecté avant l'exécution de l'action ${actionIndex}, mise en attente`);
+            waitForLoadingToComplete(() => {
+                executeMultipleActionsInternal(actions, sendResponse, actionIndex);
+            });
+        } else {
+            executeMultipleActionsInternal(actions, sendResponse, actionIndex);
+        }
+    }
+
+    // Fonction interne pour exécuter plusieurs actions
+    function executeMultipleActionsInternal(actions, sendResponse, actionIndex = 0) {
+        if (actionIndex >= actions.length) {
+            logInfo("Toutes les actions de l'étape ont été exécutées.");
+            currentStepIndex++;
+            if (sendResponse) {
+                sendResponse({ status: "next", step: "Actions terminées" });
+            }
+            return;
+        }
+
+        const action = actions[actionIndex];
+        logInfo(`Exécution de l'action : ${action.description}`);
+
+        waitForElement(action.selector, (element) => {
+            try {
+                action.action(element);
+                logInfo(`Action terminée : ${action.description}`);
+                executeMultipleActions(actions, sendResponse, actionIndex + 1); // Passer à l'action suivante
+            } catch (error) {
+                logInfo(`Erreur lors de l'exécution de l'action : ${action.description}`, error);
+                if (sendResponse) {
+                    sendResponse({ status: "error", step: action.description });
+                }
+            }
+        });
+    }
+
+    // Fonction pour exécuter une étape
+    function executeNextStep(sendResponse) {
+        if (isLoadingIndicatorPresent()) {
+            logInfo("🔄 Indicateur de chargement détecté avant l'exécution de l'étape suivante, mise en attente");
+            waitForLoadingToComplete(() => {
+                executeNextStepInternal(sendResponse);
+            });
+        } else {
+            executeNextStepInternal(sendResponse);
+        }
+    }
+
+    // Fonction interne pour exécuter l'étape suivante
+    function executeNextStepInternal(sendResponse) {
+        if (currentStepIndex >= steps.length) {
+            logInfo("Toutes les étapes ont été exécutées.");
+            if (sendResponse) {
+                sendResponse({ status: "done" });
+            }
+            return;
+        }
+
+        const step = steps[currentStepIndex];
+        logInfo(`Exécution de l'étape : ${step.name}`);
+
+        if (step.actions) {
+            // Étape avec plusieurs actions
+            executeMultipleActions(step.actions, sendResponse);
+        } else if (step.fallbackSelector) {
+            // Étape avec fallback
+            waitForElementOrFallback(step.selector, step.fallbackSelector, (element, fallbackElement) => {
+                try {
+                    step.action(element, fallbackElement);
+                    logInfo(`Étape terminée : ${step.name}`);
+                    currentStepIndex++;
+                    if (sendResponse) {
+                        sendResponse({ status: "next", step: step.name });
+                    }
+                } catch (error) {
+                    logInfo(`Erreur lors de l'exécution de l'étape : ${step.name}`, error);
+                    if (sendResponse) {
+                        sendResponse({ status: "error", step: step.name });
+                    }
+                }
+            });
+        } else {
+            // Étape classique
+            waitForElement(step.selector, (element) => {
+                try {
+                    step.action(element);
+                    logInfo(`Étape terminée : ${step.name}`);
+                    currentStepIndex++;
+                    if (sendResponse) {
+                        sendResponse({ status: "next", step: step.name });
+                    }
+                } catch (error) {
+                    logInfo(`Erreur lors de l'exécution de l'étape : ${step.name}`, error);
+                    if (sendResponse) {
+                        sendResponse({ status: "error", step: step.name });
+                    }
+                }
+            });
+        }
+    }
+
     // Fonction pour activer le script
     function activateScript() {
         isActive = true;
         alphaStepIndex = 0;
+        currentStepIndex = 0; // Réinitialiser l'index des étapes d'automatisation
         
         logInfo("🚀 ACTIVATION DU SCRIPT ALPHAMATCHERS");
         logInfo("Script activé et prêt à exécuter les vérifications");
@@ -747,6 +1042,11 @@
             sendResponse({ success: true, result });
             return true;
         }
+        else if (message.command === "nextStep") {
+            logInfo("Commande d'exécution d'étape reçue");
+            executeNextStep(sendResponse);
+            return true;
+        }
     });
 
     // Initialisation automatique si le script est chargé directement
@@ -788,7 +1088,9 @@
             highlightField,
             activateScript,
             deactivateScript,
-            detectDOMFormat
+            detectDOMFormat,
+            executeNextStep,
+            isLoadingIndicatorPresent
         };
     } else if (typeof module !== 'undefined' && module.exports) {
         // Export pour les tests Node.js
@@ -799,7 +1101,9 @@
             highlightField,
             activateScript,
             deactivateScript,
-            detectDOMFormat
+            detectDOMFormat,
+            executeNextStep,
+            isLoadingIndicatorPresent
         };
     }
 })(); // Fin de l'IIFE
