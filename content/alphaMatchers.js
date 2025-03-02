@@ -17,9 +17,22 @@
                     action: (element) => element.click(),
                 },
                 {
-                    description: "Cliquer sur l'onglet Portraits",
+                    description: "Vérifier et cliquer sur l'onglet Portraits s'il n'est pas désactivé",
                     selector: "a[href='#formValidationCorrection:tabViewValidationFiche:tab1']",
-                    action: (element) => element.click(),
+                    action: (element) => {
+                        // Vérifier si l'onglet ou son parent contient la classe ui-disabled
+                        const liParent = element.closest('li');
+                        const isDisabled = liParent && liParent.classList.contains('ui-state-disabled');
+                        
+                        if (isDisabled) {
+                            logInfo("Onglet Portraits désactivé, passage à l'étape suivante");
+                            // Incrémenter l'index pour sauter directement à l'étape des empreintes doigts
+                            currentStepIndex++;
+                        } else {
+                            logInfo("Onglet Portraits actif, clic en cours");
+                            element.click();
+                        }
+                    },
                 },
             ],
         },
@@ -901,6 +914,27 @@
 
         const action = actions[actionIndex];
         logInfo(`Exécution de l'action : ${action.description}`);
+
+        // Vérifier spécifiquement si c'est l'action sur l'onglet Portraits
+        if (action.description.includes("Vérifier et cliquer sur l'onglet Portraits")) {
+            const portraitTabSelector = action.selector;
+            const portraitTab = document.querySelector(portraitTabSelector);
+            
+            if (portraitTab) {
+                const liParent = portraitTab.closest('li');
+                const isDisabled = liParent && liParent.classList.contains('ui-state-disabled');
+                
+                if (isDisabled) {
+                    logInfo("Onglet Portraits désactivé détecté avant de tenter le clic, passage à l'étape suivante");
+                    // Terminer cette étape et passer à la suivante
+                    currentStepIndex++;
+                    if (sendResponse) {
+                        sendResponse({ status: "next", step: "Onglet Portraits désactivé, passage à l'étape suivante" });
+                    }
+                    return;
+                }
+            }
+        }
 
         waitForElement(action.selector, (element) => {
             try {
